@@ -83,7 +83,7 @@ void PostProcess::OutputPin(int slot, ID3D11RenderTargetView* rtv)
 	m_output_pins[slot] = rtv;
 }
 
-void PostProcess::SetParameters( int slot, ID3D11Buffer* cbuffer )
+void PostProcess::SetParameters(int slot, ID3D11Buffer* cbuffer)
 {
 	D3DApp::GetD3D11DeviceContext()->PSSetConstantBuffers(slot, 1, &cbuffer);
 }
@@ -101,7 +101,7 @@ void PostProcess::InitVertexBuffer()
 	};
 
 	D3D11_BUFFER_DESC vertex_buffer_desc;
-	ZeroMemory( &vertex_buffer_desc, sizeof(vertex_buffer_desc) );
+	ZeroMemory(&vertex_buffer_desc, sizeof(vertex_buffer_desc));
 	vertex_buffer_desc.Usage = D3D11_USAGE_DEFAULT;
 	vertex_buffer_desc.ByteWidth = sizeof(vertices);
 	vertex_buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
@@ -111,7 +111,7 @@ void PostProcess::InitVertexBuffer()
 	D3D11_SUBRESOURCE_DATA vertices_data; 
 	ZeroMemory(&vertices_data, sizeof(vertices_data));
 	vertices_data.pSysMem = vertices;
-	D3DApp::GetD3D11Device()->CreateBuffer( &vertex_buffer_desc, &vertices_data, &m_vertex_buffer);
+	D3DApp::GetD3D11Device()->CreateBuffer(&vertex_buffer_desc, &vertices_data, &m_vertex_buffer);
 }
 
 void PostProcess::InitIndexBuffer()

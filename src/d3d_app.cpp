@@ -219,7 +219,7 @@ void D3DApp::RegisterTimerEvents()
 	m_timer.AddEvent(1.0f, boost::bind(&D3DApp::TimerEventsProc, this, _1, _2), TEXT("update_fps"));
 }
 
-void D3DApp::TimerEventsProc( int cnt, const tstring& tag )
+void D3DApp::TimerEventsProc(int cnt, const tstring& tag)
 {
 	if (tag == TEXT("update_fps"))
 	{
@@ -330,7 +330,7 @@ bool D3DApp::InitializeD3D()
 	adapter->Release();
 
 	// create our BackBuffer and Render Target
-	hr = m_swap_chain->GetBuffer(0, __uuidof( ID3D11Texture2D ), (void**)&m_back_buffer);
+	hr = m_swap_chain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&m_back_buffer);
 	hr = m_d3d11_device->CreateRenderTargetView(m_back_buffer, NULL, &m_rendertarget_view);
 
 	// describe our Depth/Stencil Buffer

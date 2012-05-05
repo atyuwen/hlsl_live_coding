@@ -333,7 +333,7 @@ void SyntaxHighlighter::ParseToken(size_t &pos, TokenContext& context, const std
 void SyntaxHighlighter::ResolveToken(TokenContext& context, Token &tok)
 {
 	tok.depth = context.depth;
-	tok.indent = context.intent;
+	tok.indent = context.indent;
 
 	const std::wstring& word = tok.word; 
 	if (context.env == TE_LineComment || context.env == TE_BlockComment)
@@ -370,14 +370,14 @@ void SyntaxHighlighter::ResolveToken(TokenContext& context, Token &tok)
 			else if (word == L"{" || word == L"(")
 			{
 				context.depth += 1;
-				if (word == L"{") context.intent += 1;
+				if (word == L"{") context.indent += 1;
 			}
 			else if (word == L"}" || word == L")")
 			{
 				if (context.depth > 0) context.depth -= 1;
-				if (word == L"}" && context.intent > 0) context.intent -= 1;
+				if (word == L"}" && context.indent > 0) context.indent -= 1;
 				tok.depth = context.depth;
-				tok.indent = context.intent;
+				tok.indent = context.indent;
 			}
 		}
 

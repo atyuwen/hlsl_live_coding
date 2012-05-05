@@ -58,7 +58,7 @@ float HRTimer::GetDeltaTime()
 	return static_cast<float>(m_count_delta) / m_count_per_seccond;
 }
 
-void HRTimer::RemoveEvent( const tstring& tag )
+void HRTimer::RemoveEvent(const tstring& tag)
 {
 	for (auto it = m_timer_events.begin(); it != m_timer_events.end();)
 	{
@@ -67,7 +67,7 @@ void HRTimer::RemoveEvent( const tstring& tag )
 	}
 }
 
-void HRTimer::TickTimerEvents( float delta_time )
+void HRTimer::TickTimerEvents(float delta_time)
 {
 	for (auto it = m_timer_events.begin(); it != m_timer_events.end();)
 	{

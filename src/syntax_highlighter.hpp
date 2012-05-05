@@ -20,7 +20,7 @@ public:
 	{
 		TokenEnv env;
 		size_t depth;
-		size_t intent;
+		size_t indent;
 	};
 
 	enum TokenType
