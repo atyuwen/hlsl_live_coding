@@ -229,6 +229,11 @@ static const std::wstring global_funcs[] =
 	L"trunc",
 };
 
+static const std::wstring extend_funcs[] =
+{
+	L"snoise",
+};
+
 static const std::wstring member_funcs[] =
 {
 	L"Append",

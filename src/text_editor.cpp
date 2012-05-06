@@ -1,6 +1,7 @@
 #include "common.hpp"
 #include "text_editor.hpp"
 #include "d3d_app.hpp"
+#include "shader_header.hpp"
 
 #include <commdlg.h>
 #include <sstream>
@@ -139,6 +140,9 @@ bool TextEditor::Initialize(ID2D1RenderTarget* d2d_rt)
 	// init syntax highlighter
 	m_syntax_hightlighter.Intialize(d2d_rt);
 	RefreshTextLayout();
+
+	// init common headers for shader
+	ShaderHeader::InitShaderHeader();
 
 	return true;
 }
@@ -825,7 +829,8 @@ void TextEditor::AutoJumpOut()
 void TextEditor::ReloadPixelShader()
 {
 	const std::wstring &text = m_editable_text.GetText();
-	tstring shader_content(text.begin(), text.end());
+	tstring shader_content = ShaderHeader::GetHeaderText();
+	shader_content.append(text.begin(), text.end());
 
 	bool compiled_ok = D3DApp::GetPostProcess()->LoadPixelShaderFromMemory(shader_content, TEXT("ps_main"));
 	if (compiled_ok)
@@ -853,7 +858,7 @@ void TextEditor::ParseCompileError(const tstring& fxc_error)
 			iss >> m_compile_error.row >> igored_char >> m_compile_error.column;
 			iss >> igored_char >> igored_char;
 
-			m_compile_error.row -= 1;
+			m_compile_error.row -= 1 + ShaderHeader::GetHeaderLines();
 			m_compile_error.column -= 1;
 		}
 

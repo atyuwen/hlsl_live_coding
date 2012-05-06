@@ -59,6 +59,7 @@ void SyntaxHighlighter::Intialize(ID2D1RenderTarget* d2d_rt)
 
 	m_global_funcs_set.clear();
 	m_global_funcs_set.insert(global_funcs, global_funcs + ARRAYSIZE(global_funcs));
+	m_global_funcs_set.insert(extend_funcs, extend_funcs + ARRAYSIZE(extend_funcs));
 
 	m_member_funcs_set.clear();
 	m_member_funcs_set.insert(member_funcs, member_funcs + ARRAYSIZE(member_funcs));

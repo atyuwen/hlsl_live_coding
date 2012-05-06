@@ -17,6 +17,7 @@
     <ClCompile Include="src\hr_timer.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\post_process.cpp" />
+    <ClCompile Include="src\shader_header.cpp" />
     <ClCompile Include="src\sound_player.cpp" />
     <ClCompile Include="src\syntax_highlighter.cpp">
       <PreprocessToFile Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</PreprocessToFile>
@@ -30,6 +31,7 @@
     <ClInclude Include="src\hr_timer.hpp" />
     <ClInclude Include="src\keywords.hpp" />
     <ClInclude Include="src\post_process.hpp" />
+    <ClInclude Include="src\shader_header.hpp" />
     <ClInclude Include="src\sound_player.hpp" />
     <ClInclude Include="src\syntax_highlighter.hpp" />
     <ClInclude Include="src\text_editor.hpp" />
@@ -37,6 +39,7 @@
   <ItemGroup>
     <None Include="fx\pp_common.hlsl" />
     <None Include="fx\pp_copy.hlsl" />
+    <None Include="fx\snoise.hlsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{B42C522B-FC98-4041-B882-1916C8D7759A}</ProjectGuid>
