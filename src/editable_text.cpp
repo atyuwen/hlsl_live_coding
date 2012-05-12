@@ -1,6 +1,8 @@
 #include "common.hpp"
 #include "editable_text.hpp"
 
+#include <algorithm>
+
 //////////////////////////////////////////////////////////////////////////
 // constructor / destructor
 //////////////////////////////////////////////////////////////////////////
@@ -59,14 +61,7 @@ void EditableText::MoveCharLeft(bool extend_selection /*= false*/)
 void EditableText::MoveCharRight(bool extend_selection /*= false*/)
 {
 	size_t pos = m_caret_pos;
-	if (pos + 1 < m_text.length() && m_text[pos] == '\r' && m_text[pos + 1] == '\n')
-	{
-		SetCaretPos(pos + 2, extend_selection);
-	}
-	else
-	{
-		SetCaretPos(pos + 1, extend_selection);
-	}
+	SetCaretPos(pos + 1, extend_selection);
 }
 
 void EditableText::MoveWordLeft(bool extend_selection /*= false*/)
@@ -99,10 +94,7 @@ void EditableText::MoveWordLeft(bool extend_selection /*= false*/)
 void EditableText::MoveWordRight(bool extend_selection /*= false*/)
 {
 	size_t pos = m_caret_pos;
-	for (; pos < m_text.length(); ++pos)
-	{
-		if (m_text[pos] != '\r' && m_text[pos] != '\n') break;
-	}
+	if (pos < m_text.length() && m_text[pos] == '\n') pos += 1;
 
 	if (pos == m_caret_pos)
 	{
@@ -385,11 +377,6 @@ size_t EditableText::GetLineEndPos(size_t current_pos) const
 void EditableText::SetCaretPosInner(size_t pos, bool extend_selection /*= false*/)
 {
 	pos = std::min(pos, m_text.length());
-
-	if (pos > 0 && pos < m_text.length() && m_text[pos - 1] == '\r' && m_text[pos] == '\n')
-	{
-		pos = pos - 1;
-	}
 	m_caret_pos = pos;
 
 	if (extend_selection)

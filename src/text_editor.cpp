@@ -11,17 +11,17 @@
 // default shader content
 //////////////////////////////////////////////////////////////////////////
 const wchar_t default_shader_content[] =
-	L"cbuffer Parameters\r\n"
-	L"{\r\n"
-	L"  float4 time;\r\n"
-	L"  float4 view;\r\n"
-	L"  float4 fft;\r\n"
-	L"}\r\n"
-	L"\r\n"
-	L"float4 ps_main(in float2 in_tex : TEXCOORD) : SV_TARGET\r\n"
-	L"{\r\n"
-	L"  return float4(0.3, 0.3, 0.3, 1);\r\n"
-	L"}\r\n"
+	L"cbuffer Parameters\n"
+	L"{\n"
+	L"  float4 time;\n"
+	L"  float4 view;\n"
+	L"  float4 fft;\n"
+	L"}\n"
+	L"\n"
+	L"float4 ps_main(in float2 in_tex : TEXCOORD) : SV_TARGET\n"
+	L"{\n"
+	L"  return float4(0.3, 0.3, 0.3, 1);\n"
+	L"}\n"
 	;
 
 const size_t MAX_NUM_LINES = 25;
@@ -428,17 +428,17 @@ void TextEditor::OnKeyPress(UINT32 key_code)
 		if (held_control && held_shift)
 		{
 			m_editable_text.MoveLineEnd();
-			m_editable_text.InsertText(L"\r\n");
+			m_editable_text.InsertChar('\n');
 		}
 		else if (held_control)
 		{
 			m_editable_text.MoveLineBegin();
-			m_editable_text.InsertText(L"\r\n");
+			m_editable_text.InsertChar('\n');
 			m_editable_text.MoveCharLeft();
 		}
 		else
 		{
-			m_editable_text.InsertText(L"\r\n");
+			m_editable_text.InsertChar('\n');
 		}
 		AutoIndent();
 		RefreshTextLayout();
@@ -647,6 +647,10 @@ void TextEditor::OnKeyPress(UINT32 key_code)
 		}
 		break;
 
+	case VK_F7:
+		ReloadPixelShader();
+		break;
+
 	case 'M':
 		if (held_control)
 		{
@@ -681,12 +685,12 @@ void TextEditor::OnKeyCharacter(UINT32 char_code)
 		wchar_t c = static_cast<wchar_t>(char_code);
 		if (c == '{')
 		{
-			m_editable_text.InsertText(L"{\r\n}");
+			m_editable_text.InsertText(L"{\n}");
 			m_editable_text.MoveCharLeft();
 			AutoIndent();
 			m_editable_text.MoveLineBegin();
 			m_editable_text.MoveCharLeft();
-			m_editable_text.InsertText(L"\r\n");
+			m_editable_text.InsertChar('\n');
 			AutoIndent();
 		}
 		else if (c == '}')

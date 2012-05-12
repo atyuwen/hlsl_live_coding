@@ -2,52 +2,52 @@
 // Migrated from Ian McEwan's glsl code, see: https://github.com/ashima/webgl-noise
 // Copyright (C) 2011 Ashima Arts. All rights reserved.
 
-float mod289(float x)
+float __mod289(float x)
 {
   return x - floor(x * (1.0 / 289.0)) * 289.0;
 }
 
-float2 mod289(float2 x)
+float2 __mod289(float2 x)
 {
   return x - floor(x * (1.0 / 289.0)) * 289.0;
 }
 
-float3 mod289(float3 x)
+float3 __mod289(float3 x)
 {
   return x - floor(x * (1.0 / 289.0)) * 289.0;
 }
 
-float4 mod289(float4 x)
+float4 __mod289(float4 x)
 {
   return x - floor(x * (1.0 / 289.0)) * 289.0;
 }
 
-float permute(float x)
+float __permute(float x)
 {
-  return mod289(((x * 34.0) + 1.0) * x);
+  return __mod289(((x * 34.0) + 1.0) * x);
 }
 
-float3 permute(float3 x)
+float3 __permute(float3 x)
 {
-  return mod289(((x * 34.0) + 1.0) * x);
+  return __mod289(((x * 34.0) + 1.0) * x);
 }
 
-float4 permute(float4 x)
+float4 __permute(float4 x)
 {
-  return mod289(((x * 34.0) + 1.0) * x);
+  return __mod289(((x * 34.0) + 1.0) * x);
 }
 
-float taylor_inv_sqrt(float r)
+float __taylor_inv_sqrt(float r)
 {
   return 1.79284291400159 - 0.85373472095314 * r;
 }
 
-float3 taylor_inv_sqrt(float3 r)
+float3 __taylor_inv_sqrt(float3 r)
 {
   return 1.79284291400159 - 0.85373472095314 * r;
 }
 
-float4 taylor_inv_sqrt(float4 r)
+float4 __taylor_inv_sqrt(float4 r)
 {
   return 1.79284291400159 - 0.85373472095314 * r;
 }
@@ -69,8 +69,8 @@ float snoise(float2 v)
   x12.xy -= i1;
 
   // Permutations
-  i = mod289(i);  // Avoid truncation effects in permutation
-  float3 p = permute(permute(i.y + float3(0.0, i1.y, 1.0)) + i.x + float3(0.0, i1.x, 1.0));
+  i = __mod289(i);  // Avoid truncation effects in permutation
+  float3 p = __permute(__permute(i.y + float3(0.0, i1.y, 1.0)) + i.x + float3(0.0, i1.x, 1.0));
 
   float3 m = max(0.5 - float3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
   m = m * m;
@@ -84,7 +84,7 @@ float snoise(float2 v)
   float3 a0 = x - ox;
 
   // Normalise gradients implicitly by scaling m
-  m *= taylor_inv_sqrt(a0*a0 + h*h);
+  m *= __taylor_inv_sqrt(a0*a0 + h*h);
 
   // Compute final noise value at P
   float3 g;
@@ -113,8 +113,8 @@ float snoise(float3 v)
   float3 x3 = x0 - D.yyy;        // -1.0 + 3.0 * C.x = -0.5 = -D.y
 
   // Permutations
-  i = mod289(i);
-  float4 p = permute( permute( permute( 
+  i = __mod289(i);
+  float4 p = __permute( __permute( __permute( 
              i.z + float4(0.0, i1.z, i2.z, 1.0))
            + i.y + float4(0.0, i1.y, i2.y, 1.0)) 
            + i.x + float4(0.0, i1.x, i2.x, 1.0));
@@ -149,7 +149,7 @@ float snoise(float3 v)
   float3 p3 = float3(a1.zw, h.w);
   
   //Normalise gradients
-  float4 norm = taylor_inv_sqrt(float4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
+  float4 norm = __taylor_inv_sqrt(float4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
   p0 *= norm.x;
   p1 *= norm.y;
   p2 *= norm.z;
@@ -161,7 +161,7 @@ float snoise(float3 v)
   return 42.0 * dot(m *  m, float4(dot(p0, x0), dot(p1, x1), dot(p2, x2), dot(p3, x3)));
 }
 
-float4 grad4(float j, float4 ip)
+float4 __grad4(float j, float4 ip)
 {
   const float4 ones = float4(1.0, 1.0, 1.0, -1.0);
   float4 p,s;
@@ -175,7 +175,7 @@ float4 grad4(float j, float4 ip)
 }
 
 // (sqrt(5) - 1) / 4 = F4, used once below
-#define F4 0.309016994374947451
+#define __F4 0.309016994374947451
 
 float snoise(float4 v)
 {
@@ -185,7 +185,7 @@ float snoise(float4 v)
                            -0.447213595499958); // -1 + 4 * G4
 
   // First corner
-  float4 i = floor(v + dot(v, float4(F4, F4, F4, F4)) );
+  float4 i = floor(v + dot(v, float4(__F4, __F4, __F4, __F4)));
   float4 x0 = v - i + dot(i, C.xxxx);
 
   // Other corners
@@ -212,9 +212,9 @@ float snoise(float4 v)
   float4 x4 = x0 + C.wwww;
 
   // Permutations
-  i = mod289(i); 
-  float j0 = permute( permute( permute( permute(i.w) + i.z) + i.y) + i.x);
-  float4 j1 = permute( permute( permute( permute (
+  i = __mod289(i);
+  float j0 = __permute( __permute( __permute( __permute(i.w) + i.z) + i.y) + i.x);
+  float4 j1 = __permute( __permute( __permute( __permute (
              i.w + float4(i1.w, i2.w, i3.w, 1.0 ))
            + i.z + float4(i1.z, i2.z, i3.z, 1.0 ))
            + i.y + float4(i1.y, i2.y, i3.y, 1.0 ))
@@ -224,19 +224,19 @@ float snoise(float4 v)
   // 7*7*6 = 294, which is close to the ring size 17*17 = 289.
   float4 ip = float4(1.0/294.0, 1.0/49.0, 1.0/7.0, 0.0) ;
 
-  float4 p0 = grad4(j0,   ip);
-  float4 p1 = grad4(j1.x, ip);
-  float4 p2 = grad4(j1.y, ip);
-  float4 p3 = grad4(j1.z, ip);
-  float4 p4 = grad4(j1.w, ip);
+  float4 p0 = __grad4(j0,   ip);
+  float4 p1 = __grad4(j1.x, ip);
+  float4 p2 = __grad4(j1.y, ip);
+  float4 p3 = __grad4(j1.z, ip);
+  float4 p4 = __grad4(j1.w, ip);
 
   // Normalise gradients
-  float4 norm = taylor_inv_sqrt(float4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
+  float4 norm = __taylor_inv_sqrt(float4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
   p0 *= norm.x;
   p1 *= norm.y;
   p2 *= norm.z;
   p3 *= norm.w;
-  p4 *= taylor_inv_sqrt(dot(p4,p4));
+  p4 *= __taylor_inv_sqrt(dot(p4,p4));
 
   // Mix contributions from the five corners
   float3 m0 = max(0.6 - float3(dot(x0,x0), dot(x1,x1), dot(x2,x2)), 0.0);
