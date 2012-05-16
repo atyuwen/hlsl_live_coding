@@ -73,6 +73,7 @@ private:
 	PostProcessPtr m_copy_pp;
 	PostProcessPtr m_custom_pp;
 	ID3D11Buffer* m_parameter_buffer;
+	ID3D11ShaderResourceView* m_custom_texture;
 
 	TextEditorPtr m_text_editor;
 	SoundPlayerPtr m_sound_player;

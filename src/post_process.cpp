@@ -203,6 +203,9 @@ void PostProcess::InitBlendState(bool blend_enable)
 void PostProcess::InitSamplerState()
 {
 	CD3D11_SAMPLER_DESC sampler_desc(D3D11_DEFAULT);
+	sampler_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampler_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampler_desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
 	D3DApp::GetD3D11Device()->CreateSamplerState(&sampler_desc, &m_sampler_state);
 }
 

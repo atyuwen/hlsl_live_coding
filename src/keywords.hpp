@@ -42,8 +42,8 @@ static const std::wstring kewords[] =
 	L"out",
 	L"pass", L"pixelshader", L"precise",
 	L"rasterizerstate", L"rendertargetview", L"return", L"register",
-	L"sampler", L"sampler1d", L"sampler2d", L"sampler3d", L"samplercube", L"sampler_state", L"samplercomparisonstate", L"shared", L"stateblock", L"stateblock_state", L"static", L"string", L"struct", L"switch",
-	L"tbuffer", L"technique", L"technique10", L"texture1", L"texture1d", L"texture1darray", L"texture2d", L"texture2darray", L"texture2dms", L"texture2dmsarray", L"texture3d", L"texturecube", L"texturecubearray", L"true", L"typedef",
+	L"sampler", L"sampler1D", L"sampler2D", L"sampler3D", L"samplerCUBE", L"SamplerState", L"SamplerComparisonState", L"shared", L"stateblock", L"stateblock_state", L"static", L"string", L"struct", L"switch",
+	L"tbuffer", L"technique", L"technique10", L"texture", L"Texture1D", L"Texture1DArray", L"Texture2D", L"Texture2DArray", L"Texture2DMS", L"Texture2DMSArray", L"Texture3D", L"TextureCube", L"TextureCubeArray", L"true", L"typedef",
 	L"uniform",
 	L"vector", L"vertexshader", L"void", L"volatile", L"while",
 };

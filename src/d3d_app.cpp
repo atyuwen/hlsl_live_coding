@@ -78,11 +78,13 @@ D3DApp::D3DApp()
 	, m_keyed_mutex11(NULL)
 	, m_keyed_mutex10(NULL)
 	, m_parameter_buffer(NULL)
+	, m_custom_texture(NULL)
 {}
 
 D3DApp::~D3DApp()
 {
 	SAFE_RELEASE(m_parameter_buffer);
+	SAFE_RELEASE(m_custom_texture);
 
 	SAFE_RELEASE(m_depthstencil_buffer);
 	SAFE_RELEASE(m_rendertarget_view);
@@ -377,6 +379,9 @@ bool D3DApp::InitializeD3D()
 	buffer_desc.MiscFlags = 0;
 	hr = m_d3d11_device->CreateBuffer(&buffer_desc, NULL, &m_parameter_buffer);
 
+	// create a texture from file
+	D3DX11CreateShaderResourceViewFromFile(m_d3d11_device, TEXT("media/tex.bmp"), NULL, NULL, &m_custom_texture, &hr);
+
 	return true;
 }
 
@@ -479,7 +484,12 @@ void D3DApp::RenderScene()
 {
 	m_d3d11_device_context->ClearRenderTargetView(m_rendertarget_view, float4(0, 0, 0, 1).ptr());
 	m_d3d11_device_context->ClearDepthStencilView(m_depthstencil_view, D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL, 1.0f, 255);
-	
+
+	if (m_custom_texture != NULL)
+	{
+		m_custom_pp->InputPin(0, m_custom_texture);
+	}
+
 	m_custom_pp->OutputPin(0, m_rendertarget_view);
 	m_custom_pp->Apply();
 
