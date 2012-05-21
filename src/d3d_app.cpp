@@ -168,9 +168,15 @@ int D3DApp::Run()
 		}
 		else
 		{
-			m_timer.Tick();
-			UpdateScene(m_timer.GetDeltaTime());
-			RenderScene();
+			if (m_timer.SyncTick(1.0f / 60.0f))
+			{
+				UpdateScene(m_timer.GetDeltaTime());
+				RenderScene();
+			}
+			else
+			{
+				Sleep(1);
+			}
 		}
 	}
 	return msg.wParam;
@@ -443,7 +449,6 @@ bool D3DApp::InitializeScene()
 {
 	return true;
 }
-
 
 bool D3DApp::InitializeShaders()
 {

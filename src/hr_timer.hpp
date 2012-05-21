@@ -24,6 +24,8 @@ public:
 public:
 	void Start();
 	void Tick();
+	bool SyncTick(float sync_period);
+
 	float GetTime();
 	float GetDeltaTime();
 

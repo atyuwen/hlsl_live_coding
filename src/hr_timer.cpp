@@ -33,6 +33,7 @@ void HRTimer::Tick()
 	QueryPerformanceCounter(&frequency_count);
 	m_count_delta = frequency_count.QuadPart - m_count_tick;
 	m_count_tick = frequency_count.QuadPart;
+
 	if (m_first_tick)
 	{
 		m_count_delta = 0;
@@ -44,6 +45,25 @@ void HRTimer::Tick()
 	}
 
 	TickTimerEvents(GetDeltaTime());
+}
+
+bool HRTimer::SyncTick(float sync_period)
+{
+	if (m_first_tick)
+	{
+		Tick();
+		return true;
+	}
+
+	LARGE_INTEGER frequency_count;
+	QueryPerformanceCounter(&frequency_count);
+	long long count_delta = frequency_count.QuadPart - m_count_tick;
+	float delta_time = static_cast<float>(count_delta) / m_count_per_seccond;
+
+	if (delta_time < sync_period) return false;
+
+	Tick();
+	return true;
 }
 
 float HRTimer::GetTime()
