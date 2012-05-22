@@ -175,7 +175,9 @@ int D3DApp::Run()
 			}
 			else
 			{
+				timeBeginPeriod(1);
 				Sleep(1);
+				timeEndPeriod(1);
 			}
 		}
 	}
