@@ -359,6 +359,8 @@ void SyntaxHighlighter::ResolveToken(TokenContext& context, Token &tok)
 			std::transform(word.begin(), word.end(), word_lower_case.begin(), ::tolower);
 			
 			if (m_semantics_set.find(word_lower_case) != m_semantics_set.end()) tok.type = TT_Semantic;
+			else if (m_keywords_set.find(word) != m_keywords_set.end()) tok.type = TT_Keyword;
+			else if (m_global_funcs_set.find(word) != m_global_funcs_set.end()) tok.type = TT_Function;
 		}
 		else tok.type = TT_Illegal;
 	}
@@ -385,7 +387,7 @@ void SyntaxHighlighter::ResolveToken(TokenContext& context, Token &tok)
 		if (tok.type == TT_Word)
 		{
 			if (m_keywords_set.find(word) != m_keywords_set.end()) tok.type = TT_Keyword;
-			if (m_global_funcs_set.find(word) != m_global_funcs_set.end()) tok.type = TT_Function;
+			else if (m_global_funcs_set.find(word) != m_global_funcs_set.end()) tok.type = TT_Function;
 		}
 	}
 }
