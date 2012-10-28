@@ -98,7 +98,7 @@ float3 lit_black_keys(float3 p, float3 N)
   return 2 * brdf(0, 50, N, L, V);
 }
 
-float3 lit_boards(float p, float3 N)
+float3 lit_boards(float3 p, float3 N)
 {
   float3 V = normalize(float3(0, 3, -5));
   float3 L = normalize(float3(0, 3, 2));
@@ -120,6 +120,8 @@ float4 do_lighting(float3 ro, float3 rd)
   else return float4(lit_boards(rm.xyz, N), 1);
 }
 
+#define FSAA 1
+
 float4 ps_main(in float2 in_tex : TEXCOORD) : SV_TARGET
 {
   float2 p = (in_tex - 0.5) * 2 * float2(1, -view.y / view.x);
@@ -130,10 +132,24 @@ float4 ps_main(in float2 in_tex : TEXCOORD) : SV_TARGET
   float3 cd = normalize(rt - ro);
   float3 cr = normalize(cross(cd, float3(0, 1, 0)));
   float3 cu = cross(cr, cd);
-  float3 rd = normalize(p.x * cr + p.y * cu + 5 * cd);
-
+  
+  #if FSAA
+  float4 radiance = 0;
+  float3 rd = normalize((p.x + 0.25 * view.z) * cr + (p.y + 0.25 * view.w) * cu + 5 * cd);
+  radiance += do_lighting(ro, rd);
+  rd = normalize((p.x + 0.25 * view.z) * cr + (p.y - 0.25 * view.w) * cu + 5 * cd);
+  radiance += do_lighting(ro, rd);
+  rd = normalize((p.x - 0.25 * view.z) * cr + (p.y + 0.25 * view.w) * cu + 5 * cd);
+  radiance += do_lighting(ro, rd);
+  rd = normalize((p.x - 0.25 * view.z) * cr + (p.y - 0.25 * view.w) * cu + 5 * cd);
+  radiance += do_lighting(ro, rd);
+  radiance *= 0.25;
+  #else
+  float3 rd = normalize(p.x * cr + p.y  * cu + 5 * cd);
+  float4 radiance = do_lighting(ro, rd);
+  #endif
+  
   float3 col = 0.06 - 0.06 * length(p - float2(0.2, 0.3));
-  float4 luma = do_lighting(ro, rd);
-  col = lerp(col, luma.rgb, luma.a);
+  col = lerp(col, radiance.rgb, radiance.a);
   return float4(pow(col, 0.45), 1);
 }
