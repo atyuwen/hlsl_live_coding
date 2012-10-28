@@ -76,6 +76,7 @@ private:
 	ID3D11ShaderResourceView* m_custom_texture;
 
 	TextEditorPtr m_text_editor;
+	bool m_hide_editor;
 	SoundPlayerPtr m_sound_player;
 };
 

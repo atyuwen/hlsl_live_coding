@@ -79,6 +79,7 @@ D3DApp::D3DApp()
 	, m_keyed_mutex10(NULL)
 	, m_parameter_buffer(NULL)
 	, m_custom_texture(NULL)
+	, m_hide_editor(false)
 {}
 
 D3DApp::~D3DApp()
@@ -211,11 +212,40 @@ LRESULT CALLBACK D3DApp::WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		return 0;
+	case WM_KEYDOWN:
+		{
+			bool held_control = (GetKeyState(VK_CONTROL) & 0x80) != 0;
+			UINT key_code = static_cast<UINT>(wparam);
+
+			if (key_code == VK_F1)
+			{
+				app->m_hide_editor = !app->m_hide_editor;
+				return 0;
+			}
+			else if (key_code == 'M' && held_control)
+			{
+				if (app->m_sound_player) app->m_sound_player->ToggleMute();
+				return 0;
+			}
+			else if (key_code == VK_OEM_PLUS && held_control)
+			{
+				if (app->m_sound_player) app->m_sound_player->ChangeVolume(0.1f);
+				return 0;
+			}
+			else if (key_code == VK_OEM_MINUS && held_control)
+			{
+				if (app->m_sound_player) app->m_sound_player->ChangeVolume(-0.1f);
+				return 0;
+			}
+		}
 	}
 
-	if (editor && editor->HandleWindowMessage(hwnd, message, wparam, lparam))
+	if (editor && !app->m_hide_editor)
 	{
-		return 0;
+		if (editor->HandleWindowMessage(hwnd, message, wparam, lparam))
+		{
+			return 0;
+		}
 	}
 
 	return DefWindowProc(hwnd, message, wparam, lparam);
@@ -523,7 +553,10 @@ void D3DApp::RenderOverlay()
 	m_d2d_rendertarget->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
 
 	// draw text editor
-	m_text_editor->Render(m_d2d_rendertarget);
+	if (!m_hide_editor)
+	{
+		m_text_editor->Render(m_d2d_rendertarget);
+	}
 
 	// end draw
 	m_d2d_rendertarget->EndDraw();

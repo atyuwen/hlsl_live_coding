@@ -30,5 +30,7 @@ This is a live coding tool for HLSL, inspired by:
     - Tab        : auto jump (when the next char is ')' or '}').
     - Ctrl + ',' : jump into next scope.
     - Ctrl + '.' : jump out of current scope.
+	
+	- F1         : toggle show/hide text editor.
 
   Have fun!

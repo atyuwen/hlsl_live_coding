@@ -651,26 +651,7 @@ void TextEditor::OnKeyPress(UINT32 key_code)
 		ReloadPixelShader();
 		break;
 
-	case 'M':
-		if (held_control)
-		{
-			D3DApp::GetSoundPlayer()->ToggleMute();
-		}
-		break;
 
-	case VK_OEM_PLUS:
-		if (held_control)
-		{
-			D3DApp::GetSoundPlayer()->ChangeVolume(0.1f);
-		}
-		break;
-
-	case VK_OEM_MINUS:
-		if (held_control)
-		{
-			D3DApp::GetSoundPlayer()->ChangeVolume(-0.1f);
-		}
-		break;
 
 	default:
 		break;
