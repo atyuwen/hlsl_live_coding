@@ -35,11 +35,23 @@ float black_keys(float3 p)
   return length(max(abs(p) - float3(0.01, 0.03, 0.122), 0)) - 0.003;
 }
 
+float boards(float3 p)
+{
+  p.z += 0.3;
+  p.y += 0.065;
+  float d1 = length(max(abs(p) - float3(2, 0.05, 0.02), 0)) - 0.01;  
+  p.z -= 0.53;
+  float d2 = length(max(abs(p) - float3(2, 0.13, 0.007), 0)) - 0.01;
+  return min(d1, d2);
+}
+
 float2 piano(float3 p)
 {
   float d1 = white_keys(p);
   float d2 = black_keys(p);
-  return d1 < d2 ? float2(d1, 1) : float2(d2, 2);
+  float d3 = boards(p);
+  float2 t = d1 < d2 ? float2(d1, 1) : float2(d2, 2);
+  return t.x < d3 ? t : float2(d3, 3);
 }
 
 float4 ray_marching(float3 ro, float3 rd)
@@ -66,16 +78,17 @@ float3 lit_white_keys(float3 p, float3 N)
   float3 V = normalize(float3(0, 3, -5));
   float3 L = normalize(float3(3, 3, -1));
   float3 C = 2 * brdf(0.9, 50, N, L, V) * max(dot(N, L), 0.1);
-  float3 R = reflect(V, N);
-  float4 RT = ray_marching(p, R);
-  if (RT.w > 1) C = 0;
-  
   float ao = 0;
   ao += 0.5 * (0.02 - piano(p + 0.02 * N).x);
   ao += 0.25 * (0.04 - piano(p + 0.04 * N).x);
   ao += 0.125 * (0.06 - piano(p + 0.06 * N).x);
   ao = max(1 - 50 * ao, 0.2);
-  return C * ao;
+  float shadow = 0;
+  shadow += black_keys(p + 0.02 * L).x;
+  shadow += black_keys(p + 0.04 * L).x;
+  shadow += black_keys(p + 0.06 * L).x;
+  shadow = min(60 * shadow, 1.0);
+  return C * ao * shadow;
 }
 
 float3 lit_black_keys(float3 p, float3 N)
@@ -83,6 +96,13 @@ float3 lit_black_keys(float3 p, float3 N)
   float3 V = normalize(float3(0, 3, -5));
   float3 L = normalize(float3(0, 3, 2));
   return 2 * brdf(0, 50, N, L, V);
+}
+
+float3 lit_boards(float p, float3 N)
+{
+  float3 V = normalize(float3(0, 3, -5));
+  float3 L = normalize(float3(0, 3, 2));
+  return max(brdf(0, 50, N, L, V), 0.005);
 }
 
 float4 do_lighting(float3 ro, float3 rd)
@@ -96,13 +116,14 @@ float4 do_lighting(float3 ro, float3 rd)
   float3 N = normalize(float3(gx, gy, gz));
   
   if (rm.w < 1.5) return float4(lit_white_keys(rm.xyz, N), 1);
-  return float4(lit_black_keys(rm.xyz, N), 1);
+  else if (rm.w < 2.5) return float4(lit_black_keys(rm.xyz, N), 1);
+  else return float4(lit_boards(rm.xyz, N), 1);
 }
 
 float4 ps_main(in float2 in_tex : TEXCOORD) : SV_TARGET
 {
   float2 p = (in_tex - 0.5) * 2 * float2(1, -view.y / view.x);
-  if (abs(p.y) > 256.0 / 1024.0) return 0;
+  if (abs(p.y) > 200.0 / 1024.0) return 0;
 
   float3 ro = float3(0, 3, -5);
   float3 rt = float3(0, 0, 0);
@@ -111,7 +132,7 @@ float4 ps_main(in float2 in_tex : TEXCOORD) : SV_TARGET
   float3 cu = cross(cr, cd);
   float3 rd = normalize(p.x * cr + p.y * cu + 5 * cd);
 
-  float3 col = 0.2 - 0.1 * length(p - float2(0.2, 0.3));
+  float3 col = 0.06 - 0.06 * length(p - float2(0.2, 0.3));
   float4 luma = do_lighting(ro, rd);
   col = lerp(col, luma.rgb, luma.a);
   return float4(pow(col, 0.45), 1);
