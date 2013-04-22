@@ -13,9 +13,12 @@ const tstring g_app_title = TEXT("LIVE CODING");
 struct ShaderParameters
 {
 	float4 time;		// time related parameters
-	float4 view;		// viewport size: (width, height, 1 / width, 1 / height)
-	float4 fft;			// the short time FFT of the background music
+	float4 view;		// (view width, view height, 1 / width, 1 / height)
+	float4 freq;		// the short time FFT of the background music
+	float4 mpos;        // (mouse.x, mouse.y, mouse.wheel, 0)
 };
+
+ShaderParameters g_shader_param;
 
 //////////////////////////////////////////////////////////////////////////
 // static accessors
@@ -501,19 +504,25 @@ void D3DApp::UpdateScene(float delta_time)
 
 	// get sound spectrum
 	std::vector<float> spectrum;
-	m_sound_player->GetSpectrum(256, spectrum);
-	float low_freq		= *std::max_element(spectrum.begin(),	   spectrum.begin() + 1 );
-	float mid_low_freq	= *std::max_element(spectrum.begin() + 1,  spectrum.begin() + 5 );
-	float mid_high_freq = *std::max_element(spectrum.begin() + 5,  spectrum.begin() + 21);
-	float high_freq		= *std::max_element(spectrum.begin() + 21, spectrum.begin() + 85);
+	m_sound_player->GetSpectrum(1024, spectrum);
+	float low_freq		= *std::max_element(spectrum.begin(),	    spectrum.begin() + 16 );
+	float mid_low_freq	= *std::max_element(spectrum.begin() + 16,  spectrum.begin() + 64 );
+	float mid_high_freq = *std::max_element(spectrum.begin() + 64,  spectrum.begin() + 128);
+	float high_freq		= *std::max_element(spectrum.begin() + 128, spectrum.begin() + 256);
+	float4 freq(low_freq, mid_low_freq, mid_high_freq, high_freq);
+
+	// mouse interaction
+	float2 mouse_pos = m_text_editor->GetMousePos(WM_RBUTTONDOWN);
+	float mouse_wheel = m_text_editor->GetMouseWheel();
+	float4 mpos(mouse_pos.x, mouse_pos.y, mouse_wheel, 0);
 
 	// update shader parameters
-	ShaderParameters param;
-	param.time = float4(m_timer.GetTime(), 0, 0, 0);
-	param.view = float4(static_cast<float>(m_width), static_cast<float>(m_height), 1.0f / m_width, 1.0f / m_height);
-	param.fft = float4(low_freq, mid_low_freq, mid_high_freq, high_freq);
-	void *tmp = m_parameter_buffer;
-	m_d3d11_device_context->UpdateSubresource(m_parameter_buffer, 0, NULL, &param, 0, 0);
+	const float smooth_factor = 0.8f;
+	g_shader_param.time = float4(m_timer.GetTime(), 0, 0, 0);
+	g_shader_param.view = float4(static_cast<float>(m_width), static_cast<float>(m_height), 1.0f / m_width, 1.0f / m_height);
+	g_shader_param.freq = g_shader_param.freq * smooth_factor + freq * (1 - smooth_factor);
+	g_shader_param.mpos = g_shader_param.mpos * smooth_factor + mpos * (1 - smooth_factor);
+	m_d3d11_device_context->UpdateSubresource(m_parameter_buffer, 0, NULL, &g_shader_param, 0, 0);
 	m_copy_pp->SetParameters(0, m_parameter_buffer);
 }
 

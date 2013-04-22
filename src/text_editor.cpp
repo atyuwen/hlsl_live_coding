@@ -15,7 +15,8 @@ const wchar_t default_shader_content[] =
 	L"{\n"
 	L"  float4 time;\n"
 	L"  float4 view;\n"
-	L"  float4 fft;\n"
+	L"  float4 freq;\n"
+	L"  float4 mpos;\n"
 	L"}\n"
 	L"\n"
 	L"float4 ps_main(in float2 in_tex : TEXCOORD) : SV_TARGET\n"
@@ -35,6 +36,7 @@ TextEditor::TextEditor()
 	, m_text_layout(NULL)
 	, m_default_brush(NULL)
 	, m_line_offset(0)
+	, m_mouse_wheel(0)
 {
 
 }
@@ -249,6 +251,22 @@ const std::wstring& TextEditor::GetText() const
 	return m_editable_text.GetText();
 }
 
+float2 TextEditor::GetMousePos(int from_event /*= 0*/) const
+{
+	if (from_event == 0) return m_mouse_pos;
+
+	if (m_recorded_mouse_pos.find(from_event) != m_recorded_mouse_pos.end())
+	{
+		return m_mouse_pos - m_recorded_mouse_pos.at(from_event);
+	}
+	return float2(0, 0);
+}
+
+float TextEditor::GetMouseWheel() const
+{
+	return m_mouse_wheel;
+}
+
 bool TextEditor::HandleWindowMessage(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
 {
 	switch (message)
@@ -264,9 +282,6 @@ bool TextEditor::HandleWindowMessage(HWND hwnd, UINT message, WPARAM wparam, LPA
 	case WM_LBUTTONDOWN:
 	case WM_RBUTTONDOWN:
 	case WM_MBUTTONDOWN:
-	case WM_LBUTTONDBLCLK:
-	case WM_MBUTTONDBLCLK:
-	case WM_RBUTTONDBLCLK:
 		SetFocus(hwnd);
 		SetCapture(hwnd);
 		OnMousePress(message, static_cast<float>(GET_X_LPARAM(lparam)), static_cast<float>(GET_Y_LPARAM(lparam)));
@@ -277,6 +292,11 @@ bool TextEditor::HandleWindowMessage(HWND hwnd, UINT message, WPARAM wparam, LPA
 	case WM_MBUTTONUP:
 		ReleaseCapture();
 		OnMouseRelease(message, static_cast<float>(GET_X_LPARAM(lparam)), static_cast<float>(GET_Y_LPARAM(lparam)));
+		return true;
+
+	case WM_LBUTTONDBLCLK:
+	case WM_MBUTTONDBLCLK:
+	case WM_RBUTTONDBLCLK:
 		return true;
 
 	case WM_MOUSEMOVE:
@@ -394,22 +414,33 @@ void TextEditor::RefreshTextLayout()
 
 void TextEditor::OnMousePress(UINT message, float x, float y)
 {
-
+	m_recorded_mouse_pos[message] = float2(x, y);
 }
 
 void TextEditor::OnMouseRelease(UINT message, float x, float y)
 {
-
+	switch (message)
+	{
+	case WM_LBUTTONUP:
+		m_recorded_mouse_pos.erase(WM_LBUTTONDOWN);
+		break;
+	case WM_RBUTTONUP:
+		m_recorded_mouse_pos.erase(WM_RBUTTONDOWN);
+		break;
+	case WM_MBUTTONUP:
+		m_recorded_mouse_pos.erase(WM_MBUTTONDOWN);
+		break;
+	}
 }
 
 void TextEditor::OnMouseMove(float x, float y)
 {
-
+	m_mouse_pos = float2(x, y);
 }
 
 void TextEditor::OnMouseScroll(float x_scroll, float y_scroll)
 {
-
+	m_mouse_wheel += y_scroll;
 }
 
 void TextEditor::OnMouseExit()
@@ -621,6 +652,11 @@ void TextEditor::OnKeyPress(UINT32 key_code)
 	case 'N':
 		if (held_control)
 		{
+			if (!m_file_path.empty())
+			{
+				SaveFile();
+				m_file_path.clear();
+			}
 			m_editable_text.MoveTextBegin();
 			m_editable_text.MoveTextEnd(true);
 			m_editable_text.InsertText(default_shader_content);

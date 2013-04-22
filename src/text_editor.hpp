@@ -2,6 +2,7 @@
 #define _TEXT_EDITOR_INCLUDED_HPP_
 
 #include <boost/shared_ptr.hpp>
+#include <map>
 #include "syntax_highlighter.hpp"
 #include "editable_text.hpp"
 
@@ -37,7 +38,10 @@ public:
 	void Render(ID2D1RenderTarget* d2d_rt) const;
 
 	const std::wstring& GetText() const;
-	
+
+	float2 GetMousePos(int from_event = 0) const;
+	float GetMouseWheel() const;
+
 private:
 	void RefreshTextLayout();
 
@@ -71,6 +75,10 @@ private:
 	float3 m_caret_loc_hight;
 	float m_caret_idle_time;
 	std::vector<float4> m_selection_fields;
+
+	std::map<int, float2> m_recorded_mouse_pos;
+	float2 m_mouse_pos;
+	float m_mouse_wheel;
 
 	IDWriteTextFormat* m_text_format;
 	IDWriteTextFormat* m_text_format_small;
