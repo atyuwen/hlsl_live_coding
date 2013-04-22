@@ -3,7 +3,7 @@ This is a live coding tool for HLSL, inspired by:
   - iq. http://www.iquilezles.org/live/index.htm
   - githole. https://github.com/githole/Live-Coder
 
-![screenshot](https://github.com/atyuwen/live_coding/raw/master/snap.png)
+![screenshot](https://github.com/atyuwen/hlsl_live_coding/raw/master/snap.png)
 
 + Dependencies
 
