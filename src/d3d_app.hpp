@@ -20,6 +20,9 @@ public:
 	int GetWidth() const;
 	int GetHeight() const;
 
+	float2 GetMousePos(int from_event = 0) const;
+	float GetMouseWheel() const;
+
 public:
 	static D3DApp* GetApp();
 	static ID3D11Device* GetD3D11Device();
@@ -56,10 +59,14 @@ private:
 	IDXGISwapChain* m_swap_chain;
 	ID3D11Device* m_d3d11_device;
 	ID3D11DeviceContext* m_d3d11_device_context;
-	ID3D11Texture2D* m_depthstencil_buffer;
-	ID3D11RenderTargetView* m_rendertarget_view;
-	ID3D11DepthStencilView* m_depthstencil_view;
 	ID3D11Texture2D* m_back_buffer;
+	ID3D11Texture2D* m_depthstencil_buffer;
+	ID3D11RenderTargetView* m_back_buffer_rtv;
+	ID3D11DepthStencilView* m_depthstencil_view;
+
+	ID3D11Texture2D* m_offscreen_textures[2];
+	ID3D11RenderTargetView* m_offscreen_rtvs[2];
+	ID3D11ShaderResourceView* m_offscreen_srvs[2];
 
 	ID3D10Device1* m_d3d10_device;
 	IDWriteFactory* m_dwrite_factory;
@@ -72,12 +79,22 @@ private:
 
 	PostProcessPtr m_copy_pp;
 	PostProcessPtr m_custom_pp;
+	PostProcessPtr m_resolve_pp;
 	ID3D11Buffer* m_parameter_buffer;
 	ID3D11ShaderResourceView* m_custom_texture;
+	ID3D11Buffer* m_jitter_buffer;
 
 	TextEditorPtr m_text_editor;
 	bool m_hide_editor;
 	SoundPlayerPtr m_sound_player;
+
+	std::map<int, float2> m_recorded_mouse_pos;
+	float2 m_mouse_pos;
+	float m_mouse_wheel;
+
+	bool m_antialiasing;
+	int m_aa_frame;
+	float m_aa_control_time;
 };
 
 #endif  // _D3D_APP_HPP_INCLUDED_

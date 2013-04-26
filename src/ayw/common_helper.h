@@ -33,7 +33,7 @@
 		return (addr)[i];								\
 	}
 
-#define DECLARE_NAIVE_ITERATOR(Type, addr, n)						\
+#define DECLARE_NATIVE_ITERATOR(Type, addr, n)						\
 	typedef Type value_type;										\
 	typedef value_type* iterator;									\
 	typedef const value_type* const_iterator;						\

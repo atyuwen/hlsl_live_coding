@@ -39,8 +39,9 @@ public:
 
 	const std::wstring& GetText() const;
 
-	float2 GetMousePos(int from_event = 0) const;
-	float GetMouseWheel() const;
+	void NewFile();
+	void OpenFile();
+	void SaveFile(bool save_as_new = false);
 
 private:
 	void RefreshTextLayout();
@@ -53,11 +54,9 @@ private:
 	void ReloadPixelShader();
 	void ParseCompileError(const tstring& fxc_error);
 
-	void OpenFile();
-	void SaveFile(bool save_as_new = false);
-
 	void OnMousePress(UINT message, float x, float y);
 	void OnMouseRelease(UINT message, float x, float y);
+	void OnMouseDoubleClick(UINT message, float x, float y);
 	void OnMouseMove(float x, float y);
 	void OnMouseScroll(float x_scroll, float y_scroll);
 	void OnMouseExit();
@@ -75,10 +74,6 @@ private:
 	float3 m_caret_loc_hight;
 	float m_caret_idle_time;
 	std::vector<float4> m_selection_fields;
-
-	std::map<int, float2> m_recorded_mouse_pos;
-	float2 m_mouse_pos;
-	float m_mouse_wheel;
 
 	IDWriteTextFormat* m_text_format;
 	IDWriteTextFormat* m_text_format_small;

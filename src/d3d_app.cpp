@@ -10,6 +10,9 @@ using namespace Ayw;
 
 const tstring g_app_title = TEXT("LIVE CODING");
 
+const int g_aa_sample = 8;
+const float g_aa_waiting_time = 0.5f;
+
 struct ShaderParameters
 {
 	float4 time;		// time related parameters
@@ -70,7 +73,7 @@ D3DApp::D3DApp()
 	, m_d3d11_device(NULL)
 	, m_d3d11_device_context(NULL)
 	, m_depthstencil_buffer(NULL)
-	, m_rendertarget_view(NULL)
+	, m_back_buffer_rtv(NULL)
 	, m_depthstencil_view(NULL)
 	, m_back_buffer(NULL)
 	, m_d3d10_device(NULL)
@@ -81,17 +84,34 @@ D3DApp::D3DApp()
 	, m_keyed_mutex11(NULL)
 	, m_keyed_mutex10(NULL)
 	, m_parameter_buffer(NULL)
+	, m_jitter_buffer(NULL)
 	, m_custom_texture(NULL)
 	, m_hide_editor(false)
-{}
+	, m_mouse_wheel(0)
+	, m_antialiasing(false)
+	, m_aa_control_time(0)
+	, m_aa_frame(false)
+{
+	ZeroMemory(m_offscreen_textures, sizeof(m_offscreen_textures));
+	ZeroMemory(m_offscreen_srvs, sizeof(m_offscreen_srvs));
+	ZeroMemory(m_offscreen_rtvs, sizeof(m_offscreen_rtvs));
+}
 
 D3DApp::~D3DApp()
 {
+	SAFE_RELEASE(m_jitter_buffer);
 	SAFE_RELEASE(m_parameter_buffer);
 	SAFE_RELEASE(m_custom_texture);
 
+	for (int i = 0; i != ARRAYSIZE(m_offscreen_textures); ++i)
+	{
+		SAFE_RELEASE(m_offscreen_rtvs[i]);
+		SAFE_RELEASE(m_offscreen_srvs[i]);
+		SAFE_RELEASE(m_offscreen_textures[i]);
+	}
+
 	SAFE_RELEASE(m_depthstencil_buffer);
-	SAFE_RELEASE(m_rendertarget_view);
+	SAFE_RELEASE(m_back_buffer_rtv);
 	SAFE_RELEASE(m_depthstencil_view);
 	SAFE_RELEASE(m_back_buffer);
 
@@ -203,6 +223,22 @@ int D3DApp::GetHeight() const
 	return m_height;
 }
 
+float2 D3DApp::GetMousePos(int from_event /*= 0*/) const
+{
+	if (from_event == 0) return m_mouse_pos;
+
+	if (m_recorded_mouse_pos.find(from_event) != m_recorded_mouse_pos.end())
+	{
+		return m_mouse_pos - m_recorded_mouse_pos.at(from_event);
+	}
+	return float2(0, 0);
+}
+
+float D3DApp::GetMouseWheel() const
+{
+	return m_mouse_wheel;
+}
+
 //////////////////////////////////////////////////////////////////////////
 // window procedure
 //////////////////////////////////////////////////////////////////////////
@@ -218,11 +254,18 @@ LRESULT CALLBACK D3DApp::WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 	case WM_KEYDOWN:
 		{
 			bool held_control = (GetKeyState(VK_CONTROL) & 0x80) != 0;
+			bool held_shift   = (GetKeyState(VK_SHIFT)   & 0x80) != 0;
 			UINT key_code = static_cast<UINT>(wparam);
 
 			if (key_code == VK_F1)
 			{
 				app->m_hide_editor = !app->m_hide_editor;
+				return 0;
+			}
+			else if (key_code == VK_F2)
+			{
+				app->m_antialiasing = !app->m_antialiasing;
+				app->m_aa_control_time = 0;
 				return 0;
 			}
 			else if (key_code == 'M' && held_control)
@@ -240,7 +283,61 @@ LRESULT CALLBACK D3DApp::WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 				if (app->m_sound_player) app->m_sound_player->ChangeVolume(-0.1f);
 				return 0;
 			}
+			else if (key_code == 'N' && held_control)
+			{
+				if (editor) editor->NewFile();
+				app->m_recorded_mouse_pos.clear();
+				app->m_mouse_wheel = 0;
+				app->m_hide_editor = false;
+				g_shader_param.mpos = float4(0, 0, 0, 0);
+				app->m_aa_control_time = 0;
+				return 0;
+			}
+			else if (key_code == 'O' && held_control)
+			{
+				if (editor) editor->OpenFile();
+				app->m_recorded_mouse_pos.clear();
+				app->m_mouse_wheel = 0;
+				app->m_hide_editor = false;
+				g_shader_param.mpos = float4(0, 0, 0, 0);
+				app->m_aa_control_time = 0;
+				return 0;
+			}
+			else if (key_code == 'S' && held_control)
+			{
+				if (editor) editor->SaveFile(held_shift);
+				app->m_aa_control_time = 0;
+				return 0;
+			}
+			break;
 		}
+	
+	case WM_LBUTTONDOWN:
+	case WM_RBUTTONDOWN:
+	case WM_MBUTTONDOWN:
+		app->m_recorded_mouse_pos[message] = float2(
+			static_cast<float>(GET_X_LPARAM(lparam)), static_cast<float>(GET_Y_LPARAM(lparam)));
+		break;
+
+	case WM_LBUTTONUP:
+		app->m_recorded_mouse_pos.erase(WM_LBUTTONDOWN);
+		break;
+	case WM_RBUTTONUP:
+		app->m_recorded_mouse_pos.erase(WM_RBUTTONDOWN);
+		break;
+	case WM_MBUTTONUP:
+		app->m_recorded_mouse_pos.erase(WM_MBUTTONDOWN);
+		app->m_mouse_wheel = 0;
+		break;
+
+	case WM_MOUSEMOVE:
+		app->m_mouse_pos = float2(
+			static_cast<float>(GET_X_LPARAM(lparam)), static_cast<float>(GET_Y_LPARAM(lparam)));
+		break;
+
+	case WM_MOUSEWHEEL:
+		app->m_mouse_wheel += GET_WHEEL_DELTA_WPARAM(wparam) / static_cast<float>(WHEEL_DELTA);
+		break;;
 	}
 
 	if (editor && !app->m_hide_editor)
@@ -374,7 +471,7 @@ bool D3DApp::InitializeD3D()
 
 	// create our BackBuffer and Render Target
 	hr = m_swap_chain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&m_back_buffer);
-	hr = m_d3d11_device->CreateRenderTargetView(m_back_buffer, NULL, &m_rendertarget_view);
+	hr = m_d3d11_device->CreateRenderTargetView(m_back_buffer, NULL, &m_back_buffer_rtv);
 
 	// describe our Depth/Stencil Buffer
 	D3D11_TEXTURE2D_DESC depthstencil_desc;
@@ -395,7 +492,7 @@ bool D3DApp::InitializeD3D()
 	m_d3d11_device->CreateDepthStencilView(m_depthstencil_buffer, NULL, &m_depthstencil_view);
 	
 	// set render target views and depth stencil view
-	m_d3d11_device_context->OMSetRenderTargets(1, &m_rendertarget_view, m_depthstencil_view);
+	m_d3d11_device_context->OMSetRenderTargets(1, &m_back_buffer_rtv, m_depthstencil_view);
 
 	// set view port
 	D3D11_VIEWPORT view_port;
@@ -410,6 +507,17 @@ bool D3DApp::InitializeD3D()
 	// create a shader resource review from the texture D2D will render to
 	hr = m_d3d11_device->CreateShaderResourceView(m_shared_texture, NULL, &m_d2d_texture);
 
+	// create off-screen textures
+	CD3D11_TEXTURE2D_DESC offscreen_tex_desc(DXGI_FORMAT_R16G16B16A16_FLOAT, m_width, m_height);
+	offscreen_tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+	offscreen_tex_desc.MipLevels = 1;
+	for (int i = 0; i != ARRAYSIZE(m_offscreen_textures); ++i)
+	{
+		m_d3d11_device->CreateTexture2D(&offscreen_tex_desc, NULL, &m_offscreen_textures[i]);
+		m_d3d11_device->CreateShaderResourceView(m_offscreen_textures[i], NULL, &m_offscreen_srvs[i]);
+		m_d3d11_device->CreateRenderTargetView(m_offscreen_textures[i], NULL, &m_offscreen_rtvs[i]);
+	}
+
 	// create a constant buffer
 	D3D11_BUFFER_DESC buffer_desc;
 	ZeroMemory(&buffer_desc, sizeof(D3D11_BUFFER_DESC));
@@ -419,6 +527,9 @@ bool D3DApp::InitializeD3D()
 	buffer_desc.CPUAccessFlags = 0;
 	buffer_desc.MiscFlags = 0;
 	hr = m_d3d11_device->CreateBuffer(&buffer_desc, NULL, &m_parameter_buffer);
+
+	buffer_desc.ByteWidth = sizeof(float4);
+	hr = m_d3d11_device->CreateBuffer(&buffer_desc, NULL, &m_jitter_buffer);
 
 	// create a texture from file
 	D3DX11CreateShaderResourceViewFromFile(m_d3d11_device, TEXT("media/tex.bmp"), NULL, NULL, &m_custom_texture, &hr);
@@ -489,11 +600,18 @@ bool D3DApp::InitializeShaders()
 {
 	m_custom_pp = PostProcessPtr(new PostProcess);
 
-	m_copy_pp = PostProcessPtr(new PostProcess(true));
+	m_copy_pp = PostProcessPtr(new PostProcess);
 	if (!m_copy_pp->LoadPixelShaderFromFile(TEXT("pp_copy.hlsl"), TEXT("ps_main")))
 	{
 		return false;
 	}
+
+	m_resolve_pp = PostProcessPtr(new PostProcess(true));
+	if (!m_resolve_pp->LoadPixelShaderFromFile(TEXT("pp_resolve.hlsl"), TEXT("ps_main")))
+	{
+		return false;
+	}
+
 	return true;
 }
 
@@ -512,9 +630,15 @@ void D3DApp::UpdateScene(float delta_time)
 	float4 freq(low_freq, mid_low_freq, mid_high_freq, high_freq);
 
 	// mouse interaction
-	float2 mouse_pos = m_text_editor->GetMousePos(WM_RBUTTONDOWN);
-	float mouse_wheel = m_text_editor->GetMouseWheel();
+	float2 mouse_pos = GetMousePos(WM_RBUTTONDOWN);
+	float mouse_wheel = GetMouseWheel();
 	float4 mpos(mouse_pos.x, mouse_pos.y, mouse_wheel, 0);
+	float4 delta = mpos - g_shader_param.mpos;
+	if (m_antialiasing)
+	{
+		if (delta.length_sqr() > 1e-3) m_aa_control_time = 0;
+		else m_aa_control_time += std::min(delta_time, g_aa_waiting_time * 0.5f);
+	}
 
 	// update shader parameters
 	const float smooth_factor = 0.8f;
@@ -528,22 +652,52 @@ void D3DApp::UpdateScene(float delta_time)
 
 void D3DApp::RenderScene()
 {
-	m_d3d11_device_context->ClearRenderTargetView(m_rendertarget_view, float4(0, 0, 0, 1).ptr());
+	m_d3d11_device_context->ClearRenderTargetView(m_back_buffer_rtv, float4(0, 0, 0, 1).ptr());
 	m_d3d11_device_context->ClearDepthStencilView(m_depthstencil_view, D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL, 1.0f, 255);
+
+	bool enable_aa = false;
+	if (m_antialiasing && m_aa_control_time > g_aa_waiting_time)
+	{
+		enable_aa = true;
+		m_aa_frame = (m_aa_frame + 1) % (g_aa_sample * g_aa_sample);
+
+		float2 jitter(static_cast<float>(m_aa_frame % g_aa_sample), static_cast<float>(m_aa_frame / g_aa_sample));
+		float offset = g_aa_sample / 2.0 + 0.5f;
+		jitter = (jitter - float2(offset, offset)) / g_aa_sample;
+		jitter /= float2(static_cast<float>(m_width), static_cast<float>(m_height));
+
+		float4 jitter_param(jitter.x, jitter.y, 0, 0);
+		m_d3d11_device_context->UpdateSubresource(m_jitter_buffer, 0, NULL, &jitter_param, 0, 0);
+		m_d3d11_device_context->VSSetConstantBuffers(0, 1, &m_jitter_buffer);
+	}
+	else
+	{
+		m_aa_frame = 0;
+	}
 
 	if (m_custom_texture != NULL)
 	{
 		m_custom_pp->InputPin(0, m_custom_texture);
 	}
-
-	m_custom_pp->OutputPin(0, m_rendertarget_view);
+	m_custom_pp->OutputPin(0, m_offscreen_rtvs[enable_aa]);
 	m_custom_pp->Apply();
 
-	RenderOverlay();
-	m_copy_pp->InputPin(0, m_d2d_texture);
-	m_copy_pp->OutputPin(0, m_rendertarget_view);
-	m_copy_pp->Apply();
+	if (enable_aa)
+	{
+		float4 jitter_param(0, 0, 0, 0);
+		m_d3d11_device_context->UpdateSubresource(m_jitter_buffer, 0, NULL, &jitter_param, 0, 0);
+		m_d3d11_device_context->VSSetConstantBuffers(0, 1, &m_jitter_buffer);
 
+		m_resolve_pp->InputPin(0, m_offscreen_srvs[1]);
+		m_resolve_pp->OutputPin(0, m_offscreen_rtvs[0]);
+		m_resolve_pp->Apply();
+	}
+
+	RenderOverlay();
+	m_copy_pp->InputPin(0, m_offscreen_srvs[0]);
+	m_copy_pp->InputPin(1, m_d2d_texture);
+	m_copy_pp->OutputPin(0, m_back_buffer_rtv);
+	m_copy_pp->Apply();
 	m_swap_chain->Present(0, 0);
 }
 

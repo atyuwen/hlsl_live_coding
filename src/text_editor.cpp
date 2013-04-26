@@ -19,7 +19,7 @@ const wchar_t default_shader_content[] =
 	L"  float4 mpos;\n"
 	L"}\n"
 	L"\n"
-	L"float4 ps_main(in float2 in_tex : TEXCOORD) : SV_TARGET\n"
+	L"float4 ps_main(in float2 tc : TEXCOORD) : SV_TARGET\n"
 	L"{\n"
 	L"  return float4(0.3, 0.3, 0.3, 1);\n"
 	L"}\n"
@@ -36,7 +36,6 @@ TextEditor::TextEditor()
 	, m_text_layout(NULL)
 	, m_default_brush(NULL)
 	, m_line_offset(0)
-	, m_mouse_wheel(0)
 {
 
 }
@@ -251,20 +250,87 @@ const std::wstring& TextEditor::GetText() const
 	return m_editable_text.GetText();
 }
 
-float2 TextEditor::GetMousePos(int from_event /*= 0*/) const
+void TextEditor::NewFile()
 {
-	if (from_event == 0) return m_mouse_pos;
-
-	if (m_recorded_mouse_pos.find(from_event) != m_recorded_mouse_pos.end())
+	if (!m_file_path.empty())
 	{
-		return m_mouse_pos - m_recorded_mouse_pos.at(from_event);
+		SaveFile();
+		m_file_path.clear();
 	}
-	return float2(0, 0);
+	m_editable_text.MoveTextBegin();
+	m_editable_text.MoveTextEnd(true);
+	m_editable_text.InsertText(default_shader_content);
+	m_editable_text.SetCaretPos(0);
+	RefreshTextLayout();
+	ReloadPixelShader();
 }
 
-float TextEditor::GetMouseWheel() const
+void TextEditor::OpenFile()
 {
-	return m_mouse_wheel;
+	OPENFILENAMEW ofn;
+	ZeroMemory(&ofn, sizeof(ofn));
+	ofn.lStructSize = sizeof(ofn);
+	std::vector<wchar_t> file_path(512 + 1);
+	ofn.lpstrFile = &file_path[0];
+	ofn.nMaxFile = 512;
+
+	std::vector<wchar_t> directory(512 + 1);
+	GetCurrentDirectoryW(512,  &directory[0]);
+	std::wstring init_dir = std::wstring(&directory[0]) + L"\\save\\";
+	ofn.lpstrInitialDir = init_dir.c_str();
+
+	if (GetOpenFileNameW(&ofn))
+	{
+		m_file_path = std::wstring(&file_path[0]);
+
+		std::wifstream ifs(m_file_path.c_str());
+		if (!ifs.is_open()) return;
+
+		ifs.seekg(0, std::ios::end);
+		int length = static_cast<int>(ifs.tellg());
+
+		std::vector<wchar_t> buffer(length + 1);
+		ifs.seekg(0, std::ios::beg);
+		ifs.read(&buffer[0], length);
+		ifs.close();
+
+		m_editable_text.SetText(std::wstring(&buffer[0]));
+	}
+	RefreshTextLayout();
+	ReloadPixelShader();
+}
+
+void TextEditor::SaveFile(bool save_as_new /*= false*/)
+{
+	if (m_file_path.empty() || save_as_new)
+	{
+		OPENFILENAMEW ofn;
+		ZeroMemory(&ofn, sizeof(ofn));
+		ofn.lStructSize = sizeof(ofn);
+		std::vector<wchar_t> file_path(512 + 1);
+		ofn.lpstrFile = &file_path[0];
+		ofn.nMaxFile = 512;
+
+		std::vector<wchar_t> directory(512 + 1);
+		GetCurrentDirectoryW(512,  &directory[0]);
+		std::wstring init_dir = std::wstring(&directory[0]) + L"\\save\\";
+		ofn.lpstrInitialDir = init_dir.c_str();
+
+		if (GetSaveFileNameW(&ofn))
+		{
+			m_file_path = std::wstring(&file_path[0]);
+		}
+	}
+
+	if (m_file_path.empty()) return;
+
+	std::wofstream ofs(m_file_path.c_str());
+	if (!ofs.is_open()) return;
+
+	ofs.write(m_editable_text.GetText().c_str(), m_editable_text.GetText().length());
+	ofs.close();
+
+	ReloadPixelShader();
 }
 
 bool TextEditor::HandleWindowMessage(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
@@ -282,7 +348,6 @@ bool TextEditor::HandleWindowMessage(HWND hwnd, UINT message, WPARAM wparam, LPA
 	case WM_LBUTTONDOWN:
 	case WM_RBUTTONDOWN:
 	case WM_MBUTTONDOWN:
-		SetFocus(hwnd);
 		SetCapture(hwnd);
 		OnMousePress(message, static_cast<float>(GET_X_LPARAM(lparam)), static_cast<float>(GET_Y_LPARAM(lparam)));
 		return true;
@@ -297,6 +362,7 @@ bool TextEditor::HandleWindowMessage(HWND hwnd, UINT message, WPARAM wparam, LPA
 	case WM_LBUTTONDBLCLK:
 	case WM_MBUTTONDBLCLK:
 	case WM_RBUTTONDBLCLK:
+		OnMouseDoubleClick(message, static_cast<float>(GET_X_LPARAM(lparam)), static_cast<float>(GET_Y_LPARAM(lparam)));
 		return true;
 
 	case WM_MOUSEMOVE:
@@ -414,33 +480,27 @@ void TextEditor::RefreshTextLayout()
 
 void TextEditor::OnMousePress(UINT message, float x, float y)
 {
-	m_recorded_mouse_pos[message] = float2(x, y);
+
 }
 
 void TextEditor::OnMouseRelease(UINT message, float x, float y)
 {
-	switch (message)
-	{
-	case WM_LBUTTONUP:
-		m_recorded_mouse_pos.erase(WM_LBUTTONDOWN);
-		break;
-	case WM_RBUTTONUP:
-		m_recorded_mouse_pos.erase(WM_RBUTTONDOWN);
-		break;
-	case WM_MBUTTONUP:
-		m_recorded_mouse_pos.erase(WM_MBUTTONDOWN);
-		break;
-	}
+
+}
+
+void TextEditor::OnMouseDoubleClick( UINT message, float x, float y )
+{
+
 }
 
 void TextEditor::OnMouseMove(float x, float y)
 {
-	m_mouse_pos = float2(x, y);
+
 }
 
 void TextEditor::OnMouseScroll(float x_scroll, float y_scroll)
 {
-	m_mouse_wheel += y_scroll;
+
 }
 
 void TextEditor::OnMouseExit()
@@ -648,46 +708,10 @@ void TextEditor::OnKeyPress(UINT32 key_code)
 			RefreshTextLayout();
 		}
 		break;
-	
-	case 'N':
-		if (held_control)
-		{
-			if (!m_file_path.empty())
-			{
-				SaveFile();
-				m_file_path.clear();
-			}
-			m_editable_text.MoveTextBegin();
-			m_editable_text.MoveTextEnd(true);
-			m_editable_text.InsertText(default_shader_content);
-			m_editable_text.SetCaretPos(0);
-			RefreshTextLayout();
-			ReloadPixelShader();
-		}
-		break;
-
-	case 'O':
-		if (held_control)
-		{
-			OpenFile();
-			RefreshTextLayout();
-			ReloadPixelShader();
-		}
-		break;
-
-	case 'S':
-		if (held_control)
-		{
-			SaveFile(held_shift);
-			ReloadPixelShader();
-		}
-		break;
 
 	case VK_F7:
 		ReloadPixelShader();
 		break;
-
-
 
 	default:
 		break;
@@ -919,68 +943,4 @@ void TextEditor::ParseCompileError(const tstring& fxc_error)
 		m_compile_error.remain_time = 3.0f;
 		m_compile_error.alpha = 1.0f;
 	}
-}
-
-void TextEditor::OpenFile()
-{
-	OPENFILENAMEW ofn;
-	ZeroMemory(&ofn, sizeof(ofn));
-	ofn.lStructSize = sizeof(ofn);
-	std::vector<wchar_t> file_path(512 + 1);
-	ofn.lpstrFile = &file_path[0];
-	ofn.nMaxFile = 512;
-
-	std::vector<wchar_t> directory(512 + 1);
-	GetCurrentDirectoryW(512,  &directory[0]);
-	std::wstring init_dir = std::wstring(&directory[0]) + L"\\save\\";
-	ofn.lpstrInitialDir = init_dir.c_str();
-
-	if (GetOpenFileNameW(&ofn))
-	{
-		m_file_path = std::wstring(&file_path[0]);
-
-		std::wifstream ifs(m_file_path.c_str());
-		if (!ifs.is_open()) return;
-
-		ifs.seekg(0, std::ios::end);
-		int length = static_cast<int>(ifs.tellg());
-
-		std::vector<wchar_t> buffer(length + 1);
-		ifs.seekg(0, std::ios::beg);
-		ifs.read(&buffer[0], length);
-		ifs.close();
-
-		m_editable_text.SetText(std::wstring(&buffer[0]));
-	}
-}
-
-void TextEditor::SaveFile(bool save_as_new /*= false*/)
-{
-	if (m_file_path.empty() || save_as_new)
-	{
-		OPENFILENAMEW ofn;
-		ZeroMemory(&ofn, sizeof(ofn));
-		ofn.lStructSize = sizeof(ofn);
-		std::vector<wchar_t> file_path(512 + 1);
-		ofn.lpstrFile = &file_path[0];
-		ofn.nMaxFile = 512;
-
-		std::vector<wchar_t> directory(512 + 1);
-		GetCurrentDirectoryW(512,  &directory[0]);
-		std::wstring init_dir = std::wstring(&directory[0]) + L"\\save\\";
-		ofn.lpstrInitialDir = init_dir.c_str();
-
-		if (GetSaveFileNameW(&ofn))
-		{
-			m_file_path = std::wstring(&file_path[0]);
-		}
-	}
-
-	if (m_file_path.empty()) return;
-
-	std::wofstream ofs(m_file_path.c_str());
-	if (!ofs.is_open()) return;
-
-	ofs.write(m_editable_text.GetText().c_str(), m_editable_text.GetText().length());
-	ofs.close();
 }

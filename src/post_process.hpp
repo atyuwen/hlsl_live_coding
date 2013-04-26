@@ -37,6 +37,7 @@ private:
 	void InitRasterState();
 	void InitBlendState(bool blend_enable);
 	void InitSamplerState();
+	void InitDepthStencilState();
 
 private:
 	ID3D11Buffer* m_vertex_buffer;
@@ -49,6 +50,7 @@ private:
 	ID3D11RasterizerState* m_raster_state;
 	ID3D11BlendState* m_blend_state;
 	ID3D11SamplerState* m_sampler_state;
+	ID3D11DepthStencilState* m_depth_stencil_state;
 	tstring m_error_message;
 
 	std::map<int, ID3D11ShaderResourceView*> m_input_pins;

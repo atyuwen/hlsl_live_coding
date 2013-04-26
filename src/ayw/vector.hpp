@@ -34,7 +34,7 @@ namespace Ayw
 	struct vector_2t
 	{
 	public:
-		vector_2t(const Type &nx = Type(), const Type &ny = Type())
+		vector_2t(Type nx = Type(), Type ny = Type())
 			: x(nx)
 			, y(ny)
 		{
@@ -43,7 +43,7 @@ namespace Ayw
 	public:
 		DECLARE_CONVERSION_TO_POINTER(Type, &x)
 		DECLARE_SUBSCRIPT_OPERATOR(Type, &x)
-		DECLARE_NAIVE_ITERATOR(Type, &x, 2)
+		DECLARE_NATIVE_ITERATOR(Type, &x, 2)
 		DECLARE_SWIZZLING_FOR_VECTOR_2T();
 
 	public:
@@ -79,14 +79,14 @@ namespace Ayw
 			return *this;
 		}
 
-		vector_2t& operator *= (const Type& scale)
+		vector_2t& operator *= (Type scale)
 		{
 			x *= scale;
 			y *= scale;
 			return *this;
 		}
 
-		vector_2t& operator /= (const Type& scale)
+		vector_2t& operator /= (Type scale)
 		{
 			BOOST_STATIC_ASSERT(boost::is_floating_point<Type>::value);
 			Type scale_r = 1 / scale;
@@ -100,7 +100,7 @@ namespace Ayw
 			return *this;
 		}
 
-		vector_2t& operator /= (const vector_2t &ths)
+		vector_2t& operator /= (const vector_2t &rhs)
 		{
 			BOOST_STATIC_ASSERT(boost::is_floating_point<Type>::value);
 			x /= rhs.x;
@@ -117,7 +117,7 @@ namespace Ayw
 	struct vector_3t
 	{
 	public:
-		vector_3t(const Type &nx = Type(), const Type &ny = Type(),const Type &nz = Type())
+		vector_3t(Type nx = Type(), Type ny = Type(),Type nz = Type())
 			: x(nx)
 			, y(ny)
 			, z(nz)
@@ -127,7 +127,7 @@ namespace Ayw
 	public:
 		DECLARE_CONVERSION_TO_POINTER(Type, &x)
 		DECLARE_SUBSCRIPT_OPERATOR(Type, &x)
-		DECLARE_NAIVE_ITERATOR(Type, &x, 3)
+		DECLARE_NATIVE_ITERATOR(Type, &x, 3)
 		DECLARE_SWIZZLING_FOR_VECTOR_3T();
 
 	public:
@@ -165,7 +165,7 @@ namespace Ayw
 			return *this;
 		}
 
-		vector_3t& operator *= (const Type& scale)
+		vector_3t& operator *= (Type scale)
 		{
 			x *= scale;
 			y *= scale;
@@ -173,7 +173,7 @@ namespace Ayw
 			return *this;
 		}
 
-		vector_3t& operator /= (const Type& scale)
+		vector_3t& operator /= (Type scale)
 		{
 			BOOST_STATIC_ASSERT(boost::is_floating_point<Type>::value);
 			Type scale_r = 1 / scale;
@@ -207,7 +207,7 @@ namespace Ayw
 	struct vector_4t
 	{
 	public:
-		vector_4t(const Type &nx = Type(), const Type &ny = Type(), const Type &nz = Type(), const Type &nw = Type())
+		vector_4t(Type nx = Type(), Type ny = Type(), Type nz = Type(), Type nw = Type())
 			: x(nx)
 			, y(ny)
 			, z(nz)
@@ -218,7 +218,7 @@ namespace Ayw
 	public:
 		DECLARE_CONVERSION_TO_POINTER(Type, &x)
 		DECLARE_SUBSCRIPT_OPERATOR(Type, &x)
-		DECLARE_NAIVE_ITERATOR(Type, &x, 4)
+		DECLARE_NATIVE_ITERATOR(Type, &x, 4)
 		DECLARE_SWIZZLING_FOR_VECTOR_4T();
 
 	public:
@@ -258,7 +258,7 @@ namespace Ayw
 			return *this;
 		}
 
-		vector_4t& operator *= (const Type& scale)
+		vector_4t& operator *= (Type scale)
 		{
 			x *= scale;
 			y *= scale;
@@ -267,7 +267,7 @@ namespace Ayw
 			return *this;
 		}
 
-		vector_4t& operator /= (const Type& scale)
+		vector_4t& operator /= (Type scale)
 		{
 			BOOST_STATIC_ASSERT(boost::is_floating_point<Type>::value);
 			Type scale_r = 1 / scale;

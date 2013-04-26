@@ -319,6 +319,7 @@ void SyntaxHighlighter::ParseToken(size_t &pos, TokenContext& context, const std
 		tok.type = illegal ? TT_Illegal : TT_Constant;
 		ResolveToken(context, tok);
 		m_tokens.push_back(tok);
+		return;
 	}
 
 	// other separators
@@ -362,7 +363,6 @@ void SyntaxHighlighter::ResolveToken(TokenContext& context, Token &tok)
 			else if (m_keywords_set.find(word) != m_keywords_set.end()) tok.type = TT_Keyword;
 			else if (m_global_funcs_set.find(word) != m_global_funcs_set.end()) tok.type = TT_Function;
 		}
-		else tok.type = TT_Illegal;
 	}
 	else if (context.env == TE_Normal)
 	{

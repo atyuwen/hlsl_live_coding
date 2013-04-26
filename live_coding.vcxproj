@@ -37,9 +37,10 @@
     <ClInclude Include="src\text_editor.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="fx\pp_common.hlsl" />
-    <None Include="fx\pp_copy.hlsl" />
-    <None Include="fx\snoise.hlsl" />
+    <None Include="bin\fx\pp_common.hlsl" />
+    <None Include="bin\fx\pp_copy.hlsl" />
+    <None Include="bin\fx\pp_resolve.hlsl" />
+    <None Include="bin\fx\snoise.hlsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{B42C522B-FC98-4041-B882-1916C8D7759A}</ProjectGuid>
