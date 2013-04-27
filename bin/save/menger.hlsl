@@ -6,26 +6,26 @@ cbuffer Parameters
   float4 mpos;
 }
 
-float box(float3 p)
-{
-  p = abs(p) - 1;
-  return min(max(p.x,max(p.y,p.z)), 0) + length(max(p, 0));
-}
+float box(float3 p)
+{
+  p = abs(p) - 1;
+  return min(max(p.x,max(p.y,p.z)), 0) + length(max(p, 0));
+}
 
 float DE(float3 p)
 {
-  float d = box(p);
-  float scale = 1.0;
-  for(int i = 0; i < 4; ++i)
-  {
-    float3 a = fmod(p + 1, 2 * scale) - scale;
+  float d = box(p);
+  float scale = 1.0;
+  for(int i = 0; i < 4; ++i)
+  {
+    float3 a = fmod(p + 1, 2 * scale) - scale;
     scale /= 3;
-    float3 r = abs(a / scale);
-    float da = max(r.x, r.y);
-    float db = max(r.y, r.z);
-    float dc = max(r.z, r.x);
+    float3 r = abs(a / scale);
+    float da = max(r.x, r.y);
+    float db = max(r.y, r.z);
+    float dc = max(r.z, r.x);
     float c = min(da, min(db, dc)) - 1;
-    d = max(d, -c * scale);
+    d = max(d, -c * scale);
   }
   return d;
 }
@@ -48,15 +48,15 @@ float4 shade(float3 ro, float3 rd)
 
   float3 p = rm.xyz;
   float k = DE(p);
-  float gx = DE(p + float3(1e-5, 0, 0)) - k;
-  float gy = DE(p + float3(0, 1e-5, 0)) - k;
-  float gz = DE(p + float3(0, 0, 1e-5)) - k;
+  float gx = DE(p + float3(1e-5, 0, 0)) - k;
+  float gy = DE(p + float3(0, 1e-5, 0)) - k;
+  float gz = DE(p + float3(0, 0, 1e-5)) - k;
   float3 N = normalize(float3(gx, gy, gz));
   
-  float ao = 0;
-  ao += DE(p + 0.2 * N) * 2.5;
-  ao += DE(p + 0.5 * N) * 1.0;
- 
+  float ao = 0;
+  ao += DE(p + 0.2 * N) * 2.5;
+  ao += DE(p + 0.5 * N) * 1.0;
+
   float3 L = normalize(float3(-2, 1, 1));
   float4 S = ray_marching(p + N * 0.001, L);
   float3 C = float3(0.3, 0.2, 0.3) + 0.2 * snoise(p * 100);

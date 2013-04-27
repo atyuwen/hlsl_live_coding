@@ -12,7 +12,7 @@ float4 ps_main(in float2 in_tex : TEXCOORD) : SV_TARGET
   p -= mpos.xy * 0.003;
   p *= 1 / max(0.5, 1 + mpos.z * 0.1);
   float t = time.x - step(0.4, freq.x) * 0.5;
-  float2 c = float2(0.3 + sin(t * 0.3) * 0.2, 0.5 + snoise(time.xy) * 0.2);
+  float2 c = float2(0.3 + sin(t * 0.3) * 0.2, 0.5 + snoise(time.xy * 0.1) * 0.3);
 
   float3 trap = 10;
   for (int i; i < 32; ++i)

@@ -1,11 +1,13 @@
+![screenshot](https://github.com/atyuwen/hlsl_live_coding/raw/master/snap.png)
+
 This is a live coding tool for HLSL, inspired by:
 
   - iq. http://www.iquilezles.org/live/index.htm
   - githole. https://github.com/githole/Live-Coder
 
-![screenshot](https://github.com/atyuwen/hlsl_live_coding/raw/master/snap.png)
-
 + Dependencies
+
+  < If you won't bother the compiling stuff, just run bin/live_coding.exe and play around. >
 
   To compile, you will need following libs:
 
@@ -20,18 +22,21 @@ This is a live coding tool for HLSL, inspired by:
 
   The program only runs on Win7. The way of typing codes is very like vs2010 except mouse is not supported, you can only use keyboard to move caret and input.
 
-  Following list some shortkeys, see TextEditor.cpp for more details.
+  Following list some shortkeys, see src/TextEditor.cpp for more.
 
     - Ctrl + 'S' : save codes to file and compile.
     - Ctrl + 'O' : open an existing file.
-    - Ctrl + 'M' : set mute.
+    - Ctrl + 'M' : turn on/off music.
     - Ctrl + '-' : decrease volume.
     - Ctrl + '=' : increase volume.
 
     - Tab        : auto jump (when the next char is ')' or '}').
     - Ctrl + ',' : jump into next scope.
     - Ctrl + '.' : jump out of current scope.
-	
+    - Ctrl + 'C' : copy current selection. (or current line if select none)
+    - Ctrl + 'L' : cut current line.
+    
     - F1         : toggle show/hide text editor.
+    - F2         : toggle antialiasing.
 
   Have fun!

@@ -298,7 +298,6 @@ LRESULT CALLBACK D3DApp::WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 				if (editor) editor->OpenFile();
 				app->m_recorded_mouse_pos.clear();
 				app->m_mouse_wheel = 0;
-				app->m_hide_editor = false;
 				g_shader_param.mpos = float4(0, 0, 0, 0);
 				app->m_aa_control_time = 0;
 				return 0;
