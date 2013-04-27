@@ -10,8 +10,8 @@ using namespace Ayw;
 
 const tstring g_app_title = TEXT("LIVE CODING");
 
-const int g_aa_sample = 8;
-const float g_aa_waiting_time = 0.5f;
+const int g_aa_sample = 4;
+const float g_aa_warm_time = 0.2f;
 
 struct ShaderParameters
 {
@@ -88,9 +88,9 @@ D3DApp::D3DApp()
 	, m_custom_texture(NULL)
 	, m_hide_editor(false)
 	, m_mouse_wheel(0)
-	, m_antialiasing(false)
+	, m_aa_enabled(false)
 	, m_aa_control_time(0)
-	, m_aa_frame(false)
+	, m_aa_frame_idx(false)
 {
 	ZeroMemory(m_offscreen_textures, sizeof(m_offscreen_textures));
 	ZeroMemory(m_offscreen_srvs, sizeof(m_offscreen_srvs));
@@ -264,7 +264,7 @@ LRESULT CALLBACK D3DApp::WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 			}
 			else if (key_code == VK_F2)
 			{
-				app->m_antialiasing = !app->m_antialiasing;
+				app->m_aa_enabled = !app->m_aa_enabled;
 				app->m_aa_control_time = 0;
 				return 0;
 			}
@@ -634,10 +634,10 @@ void D3DApp::UpdateScene(float delta_time)
 	float mouse_wheel = GetMouseWheel();
 	float4 mpos(mouse_pos.x, mouse_pos.y, mouse_wheel, 0);
 	float4 delta = mpos - g_shader_param.mpos;
-	if (m_antialiasing)
+	if (m_aa_enabled)
 	{
 		if (delta.length_sqr() > 1e-3) m_aa_control_time = 0;
-		else m_aa_control_time += std::min(delta_time, g_aa_waiting_time * 0.5f);
+		else m_aa_control_time += std::min(delta_time, g_aa_warm_time * 0.5f);
 	}
 
 	// update shader parameters
@@ -656,23 +656,32 @@ void D3DApp::RenderScene()
 	m_d3d11_device_context->ClearDepthStencilView(m_depthstencil_view, D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL, 1.0f, 255);
 
 	bool enable_aa = false;
-	if (m_antialiasing && m_aa_control_time > g_aa_waiting_time)
+	if (m_aa_enabled && m_aa_control_time > g_aa_warm_time)
 	{
 		enable_aa = true;
-		m_aa_frame = (m_aa_frame + 1) % (g_aa_sample * g_aa_sample);
+		static std::vector<int> perm(g_aa_sample * g_aa_sample);
+		if (m_aa_frame_idx == 0)
+		{
+			for (int i = 0; i != perm.size(); ++i) perm[i] = i;
+			std::random_shuffle(perm.begin(), perm.end());
+		}
 
-		float2 jitter(static_cast<float>(m_aa_frame % g_aa_sample), static_cast<float>(m_aa_frame / g_aa_sample));
-		float offset = g_aa_sample / 2.0 + 0.5f;
-		jitter = (jitter - float2(offset, offset)) / g_aa_sample;
-		jitter /= float2(static_cast<float>(m_width), static_cast<float>(m_height));
+		// stratified sampling
+		int sample = perm[m_aa_frame_idx];
+		float2 jitter(static_cast<float>(sample % g_aa_sample), static_cast<float>(sample / g_aa_sample));
+		float2 offset = float2(g_aa_sample / 2.0f, g_aa_sample / 2.0f);
+		offset += float2(static_cast<float>(rand()), static_cast<float>(rand())) / RAND_MAX;;
+		jitter = (jitter - offset) / float2(static_cast<float>(m_width * g_aa_sample), static_cast<float>(m_height * g_aa_sample));
 
 		float4 jitter_param(jitter.x, jitter.y, 0, 0);
 		m_d3d11_device_context->UpdateSubresource(m_jitter_buffer, 0, NULL, &jitter_param, 0, 0);
 		m_d3d11_device_context->VSSetConstantBuffers(0, 1, &m_jitter_buffer);
+
+		m_aa_frame_idx = (m_aa_frame_idx + 1) % (g_aa_sample * g_aa_sample);
 	}
 	else
 	{
-		m_aa_frame = 0;
+		m_aa_frame_idx = 0;
 	}
 
 	if (m_custom_texture != NULL)

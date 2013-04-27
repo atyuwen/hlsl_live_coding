@@ -120,7 +120,7 @@ float4 do_lighting(float3 ro, float3 rd)
   else return float4(lit_boards(rm.xyz, N), 1);
 }
 
-#define FSAA 1
+#define FSAA 0
 
 float4 ps_main(in float2 in_tex : TEXCOORD) : SV_TARGET
 {

@@ -92,8 +92,8 @@ private:
 	float2 m_mouse_pos;
 	float m_mouse_wheel;
 
-	bool m_antialiasing;
-	int m_aa_frame;
+	bool m_aa_enabled;
+	int m_aa_frame_idx;
 	float m_aa_control_time;
 };
 

@@ -60,7 +60,7 @@ float4 shade(float3 ro, float3 rd)
   float3 L = normalize(float3(-2, 1, 1));
   float4 S = ray_marching(p + N * 0.001, L);
   float3 C = float3(0.3, 0.2, 0.3) + 0.2 * snoise(p * 100);
-  float D = 0.6 * (S.w < 0 ? 1 : 0);
+  float D = 0.7 * (S.w < 0 ? 1 : 0);
   float A = 0.1;
   float3 col = (A + D * saturate(dot(L, N))) * ao * C;
   return float4(col , 1);
