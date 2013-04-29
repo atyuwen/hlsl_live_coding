@@ -77,13 +77,22 @@ void SoundPlayer::GetSpectrum(size_t num_sections, std::vector<float> &out_spect
 	}
 }
 
-void SoundPlayer::ToggleMute()
+bool SoundPlayer::GetMute() const
 {
 	if (m_channel)
 	{
 		bool mute;
 		m_channel->getMute(&mute);
-		m_channel->setMute(!mute);
+		return mute;
+	}
+	return true;
+}
+
+void SoundPlayer::SetMute(bool mute)
+{
+	if (m_channel)
+	{
+		m_channel->setMute(mute);
 	}
 }
 

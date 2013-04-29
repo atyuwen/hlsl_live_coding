@@ -8,7 +8,7 @@
 #include "d3d_app.hpp"
 using namespace Ayw;
 
-const tstring g_app_title = TEXT("LIVE CODING");
+const tstring g_app_title = TEXT("LiVE HLSL");
 
 const int g_aa_sample = 4;
 const float g_aa_warm_time = 0.2f;
@@ -173,7 +173,9 @@ bool D3DApp::Initialize(HINSTANCE hinstance, int width, int height)
 		return false;
 	}
 	m_sound_player->PlaySound(TEXT("media/bgm.mp3"), true);
+	m_sound_player->SetMute(true);
 
+	m_timer.Start();
 	RegisterTimerEvents();
 	return true;
 }
@@ -192,17 +194,9 @@ int D3DApp::Run()
 		}
 		else
 		{
-			if (m_timer.SyncTick(1.0f / 60.0f))
-			{
-				UpdateScene(m_timer.GetDeltaTime());
-				RenderScene();
-			}
-			else
-			{
-				timeBeginPeriod(1);
-				Sleep(1);
-				timeEndPeriod(1);
-			}
+			m_timer.SyncTick(1.0f / 60.0f);
+			UpdateScene(m_timer.GetDeltaTime());
+			RenderScene();
 		}
 	}
 	return msg.wParam;
@@ -268,9 +262,13 @@ LRESULT CALLBACK D3DApp::WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 				app->m_aa_control_time = 0;
 				return 0;
 			}
-			else if (key_code == 'M' && held_control)
+			else if (key_code == VK_F3)
 			{
-				if (app->m_sound_player) app->m_sound_player->ToggleMute();
+				if (app->m_sound_player)
+				{
+					bool mute = app->m_sound_player->GetMute();
+					app->m_sound_player->SetMute(!mute);
+				}
 				return 0;
 			}
 			else if (key_code == VK_OEM_PLUS && held_control)
@@ -355,17 +353,30 @@ LRESULT CALLBACK D3DApp::WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 //////////////////////////////////////////////////////////////////////////
 void D3DApp::RegisterTimerEvents()
 {
-	m_timer.AddEvent(1.0f, boost::bind(&D3DApp::TimerEventsProc, this, _1, _2), TEXT("update_fps"));
+	m_timer.AddEvent(0.1f, boost::bind(&D3DApp::TimerEventsProc, this, _1, _2), TEXT("update_title"));
 }
 
 void D3DApp::TimerEventsProc(int cnt, const tstring& tag)
 {
-	if (tag == TEXT("update_fps"))
+	if (tag == TEXT("update_title"))
 	{
 		float delta_time = m_timer.GetDeltaTime();
-		int fps = static_cast<int>(1.0f / std::max(delta_time, Ayw::c_eps));
-		tstring title = g_app_title + TEXT("  FPS: ") + to_string(fps);
-		SetWindowText(m_hwnd, title.c_str());
+		float fps = 1.0f / std::max(delta_time, Ayw::c_eps);
+		float cpu_time = m_timer.GetCPUDeltaTime() * 1000;
+		float gpu_time = m_timer.GetGPUDeltaTime() * 1000;
+
+		char title[512] = {0};
+		sprintf_s(title,
+			TEXT("%s     [ ShowEditor(F1):%s | Anti-Aliasing(F2):%s | BgMusic(F3):%s ]     [ FPS:%d | CPU:%.1fms | GPU:%.1fms ]"),
+			g_app_title.c_str(),
+			!m_hide_editor ? TEXT("on") : TEXT("off"),
+			m_aa_enabled ? TEXT("on") : TEXT("off"),
+			!m_sound_player->GetMute() ? TEXT("on") : TEXT("off"),
+			static_cast<int>(fps + 0.5f),
+			cpu_time,
+			gpu_time);
+
+		SetWindowText(m_hwnd, title);
 	}
 }
 
@@ -520,10 +531,10 @@ bool D3DApp::InitializeD3D()
 	// create a constant buffer
 	D3D11_BUFFER_DESC buffer_desc;
 	ZeroMemory(&buffer_desc, sizeof(D3D11_BUFFER_DESC));
-	buffer_desc.Usage	  = D3D11_USAGE_DEFAULT;
+	buffer_desc.Usage	  = D3D11_USAGE_DYNAMIC;
 	buffer_desc.ByteWidth = sizeof(ShaderParameters);
 	buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-	buffer_desc.CPUAccessFlags = 0;
+	buffer_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	buffer_desc.MiscFlags = 0;
 	hr = m_d3d11_device->CreateBuffer(&buffer_desc, NULL, &m_parameter_buffer);
 
@@ -645,12 +656,17 @@ void D3DApp::UpdateScene(float delta_time)
 	g_shader_param.view = float4(static_cast<float>(m_width), static_cast<float>(m_height), 1.0f / m_width, 1.0f / m_height);
 	g_shader_param.freq = g_shader_param.freq * smooth_factor + freq * (1 - smooth_factor);
 	g_shader_param.mpos = g_shader_param.mpos * smooth_factor + mpos * (1 - smooth_factor);
-	m_d3d11_device_context->UpdateSubresource(m_parameter_buffer, 0, NULL, &g_shader_param, 0, 0);
+
+	D3D11_MAPPED_SUBRESOURCE res;
+	m_d3d11_device_context->Map(m_parameter_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &res);
+	memcpy(res.pData, &g_shader_param, sizeof(g_shader_param));
+	m_d3d11_device_context->Unmap(m_parameter_buffer, 0);
 	m_copy_pp->SetParameters(0, m_parameter_buffer);
 }
 
 void D3DApp::RenderScene()
 {
+	m_timer.BeginGPUTimming();
 	m_d3d11_device_context->ClearRenderTargetView(m_back_buffer_rtv, float4(0, 0, 0, 1).ptr());
 	m_d3d11_device_context->ClearDepthStencilView(m_depthstencil_view, D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL, 1.0f, 255);
 
@@ -672,8 +688,10 @@ void D3DApp::RenderScene()
 		offset += float2(static_cast<float>(rand()), static_cast<float>(rand())) / RAND_MAX;;
 		jitter = (jitter - offset) / float2(static_cast<float>(m_width * g_aa_sample), static_cast<float>(m_height * g_aa_sample));
 
-		float4 jitter_param(jitter.x, jitter.y, 0, 0);
-		m_d3d11_device_context->UpdateSubresource(m_jitter_buffer, 0, NULL, &jitter_param, 0, 0);
+		D3D11_MAPPED_SUBRESOURCE res;
+		m_d3d11_device_context->Map(m_jitter_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &res);
+		*(static_cast<float4*>(res.pData)) = float4(jitter.x, jitter.y, 0, 0);
+		m_d3d11_device_context->Unmap(m_jitter_buffer, 0);
 		m_d3d11_device_context->VSSetConstantBuffers(0, 1, &m_jitter_buffer);
 
 		m_aa_frame_idx = (m_aa_frame_idx + 1) % (g_aa_sample * g_aa_sample);
@@ -692,8 +710,10 @@ void D3DApp::RenderScene()
 
 	if (enable_aa)
 	{
-		float4 jitter_param(0, 0, 0, 0);
-		m_d3d11_device_context->UpdateSubresource(m_jitter_buffer, 0, NULL, &jitter_param, 0, 0);
+		D3D11_MAPPED_SUBRESOURCE res;
+		m_d3d11_device_context->Map(m_jitter_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &res);
+		*(static_cast<float4*>(res.pData)) = float4(0, 0, 0, 0);
+		m_d3d11_device_context->Unmap(m_jitter_buffer, 0);
 		m_d3d11_device_context->VSSetConstantBuffers(0, 1, &m_jitter_buffer);
 
 		m_resolve_pp->InputPin(0, m_offscreen_srvs[1]);
@@ -706,6 +726,8 @@ void D3DApp::RenderScene()
 	m_copy_pp->InputPin(1, m_d2d_texture);
 	m_copy_pp->OutputPin(0, m_back_buffer_rtv);
 	m_copy_pp->Apply();
+
+	m_timer.EndGPUTimming();
 	m_swap_chain->Present(0, 0);
 }
 

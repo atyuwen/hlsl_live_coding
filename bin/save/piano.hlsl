@@ -133,21 +133,8 @@ float4 ps_main(in float2 in_tex : TEXCOORD) : SV_TARGET
   float3 cr = normalize(cross(cd, float3(0, 1, 0)));
   float3 cu = cross(cr, cd);
   
-  #if FSAA
-  float4 radiance = 0;
-  float3 rd = normalize((p.x + 0.25 * view.z) * cr + (p.y + 0.25 * view.w) * cu + 5 * cd);
-  radiance += do_lighting(ro, rd);
-  rd = normalize((p.x + 0.25 * view.z) * cr + (p.y - 0.25 * view.w) * cu + 5 * cd);
-  radiance += do_lighting(ro, rd);
-  rd = normalize((p.x - 0.25 * view.z) * cr + (p.y + 0.25 * view.w) * cu + 5 * cd);
-  radiance += do_lighting(ro, rd);
-  rd = normalize((p.x - 0.25 * view.z) * cr + (p.y - 0.25 * view.w) * cu + 5 * cd);
-  radiance += do_lighting(ro, rd);
-  radiance *= 0.25;
-  #else
   float3 rd = normalize(p.x * cr + p.y  * cu + 5 * cd);
   float4 radiance = do_lighting(ro, rd);
-  #endif
   
   float3 col = 0.06 - 0.06 * length(p - float2(0.2, 0.3));
   col = lerp(col, radiance.rgb, radiance.a);

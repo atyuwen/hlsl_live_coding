@@ -26,7 +26,8 @@ public:
 
 	void PlaySound(const tstring& file_path, bool loop = false);
 	
-	void ToggleMute();
+	bool GetMute() const;
+	void SetMute(bool mute);
 	void ChangeVolume(float delta_volume);
 
 	void GetSpectrum(size_t num_sections, std::vector<float> &out_spectrum);

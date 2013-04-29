@@ -4,7 +4,7 @@ cbuffer Parameters
 }
 
 void vs_main(in float3 in_pos : POSITION,
-             in float2 in_tex : TEXCOORD,
+			 in float2 in_tex : TEXCOORD,
 			 out float2 out_tex: TEXCOORD,
 			 out float4 out_pos: SV_POSITION)
 {
