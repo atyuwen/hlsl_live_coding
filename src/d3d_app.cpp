@@ -258,17 +258,17 @@ LRESULT CALLBACK D3DApp::WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 			}
 			else if (key_code == VK_F2)
 			{
-				app->m_aa_enabled = !app->m_aa_enabled;
-				app->m_aa_control_time = 0;
-				return 0;
-			}
-			else if (key_code == VK_F3)
-			{
 				if (app->m_sound_player)
 				{
 					bool mute = app->m_sound_player->GetMute();
 					app->m_sound_player->SetMute(!mute);
 				}
+				return 0;
+			}
+			else if (key_code == VK_F3)
+			{
+				app->m_aa_enabled = !app->m_aa_enabled;
+				app->m_aa_control_time = 0;
 				return 0;
 			}
 			else if (key_code == VK_OEM_PLUS && held_control)
@@ -367,11 +367,11 @@ void D3DApp::TimerEventsProc(int cnt, const tstring& tag)
 
 		char title[512] = {0};
 		sprintf_s(title,
-			TEXT("%s     [ ShowEditor(F1):%s | Anti-Aliasing(F2):%s | BgMusic(F3):%s ]     [ FPS:%d | CPU:%.1fms | GPU:%.1fms ]"),
+			TEXT("%s     [ ShowEditor(F1):%s | BgMusic(F2):%s | Anti-Aliasing(F3):%s ]     [ FPS:%d | CPU:%.1fms | GPU:%.1fms ]"),
 			g_app_title.c_str(),
 			!m_hide_editor ? TEXT("on") : TEXT("off"),
-			m_aa_enabled ? TEXT("on") : TEXT("off"),
 			!m_sound_player->GetMute() ? TEXT("on") : TEXT("off"),
+			m_aa_enabled ? TEXT("on") : TEXT("off"),
 			static_cast<int>(fps + 0.5f),
 			cpu_time,
 			gpu_time);
@@ -504,16 +504,6 @@ bool D3DApp::InitializeD3D()
 	// set render target views and depth stencil view
 	m_d3d11_device_context->OMSetRenderTargets(1, &m_back_buffer_rtv, m_depthstencil_view);
 
-	// set view port
-	D3D11_VIEWPORT view_port;
-	view_port.Width = static_cast<float>(m_width);
-	view_port.Height = static_cast<float>(m_height);
-	view_port.MinDepth = 0.0f;
-	view_port.MaxDepth = 1.0f;
-	view_port.TopLeftX = 0;
-	view_port.TopLeftY = 0;
-	m_d3d11_device_context->RSSetViewports(1, &view_port);
-
 	// create a shader resource review from the texture D2D will render to
 	hr = m_d3d11_device->CreateShaderResourceView(m_shared_texture, NULL, &m_d2d_texture);
 
@@ -545,6 +535,19 @@ bool D3DApp::InitializeD3D()
 	D3DX11CreateShaderResourceViewFromFile(m_d3d11_device, TEXT("media/tex.bmp"), NULL, NULL, &m_custom_texture, &hr);
 
 	return true;
+}
+
+void D3DApp::SetViewport(int width, int height)
+{
+	// set view port
+	D3D11_VIEWPORT view_port;
+	view_port.Width = static_cast<float>(m_width);
+	view_port.Height = static_cast<float>(m_height);
+	view_port.MinDepth = 0.0f;
+	view_port.MaxDepth = 1.0f;
+	view_port.TopLeftX = 0;
+	view_port.TopLeftY = 0;
+	m_d3d11_device_context->RSSetViewports(1, &view_port);
 }
 
 bool D3DApp::InitializeDWrite(IDXGIAdapter1* adapter)
@@ -656,17 +659,12 @@ void D3DApp::UpdateScene(float delta_time)
 	g_shader_param.view = float4(static_cast<float>(m_width), static_cast<float>(m_height), 1.0f / m_width, 1.0f / m_height);
 	g_shader_param.freq = g_shader_param.freq * smooth_factor + freq * (1 - smooth_factor);
 	g_shader_param.mpos = g_shader_param.mpos * smooth_factor + mpos * (1 - smooth_factor);
-
-	D3D11_MAPPED_SUBRESOURCE res;
-	m_d3d11_device_context->Map(m_parameter_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &res);
-	memcpy(res.pData, &g_shader_param, sizeof(g_shader_param));
-	m_d3d11_device_context->Unmap(m_parameter_buffer, 0);
-	m_copy_pp->SetParameters(0, m_parameter_buffer);
 }
 
 void D3DApp::RenderScene()
 {
 	m_timer.BeginGPUTimming();
+	SetViewport(m_width, m_height);
 	m_d3d11_device_context->ClearRenderTargetView(m_back_buffer_rtv, float4(0, 0, 0, 1).ptr());
 	m_d3d11_device_context->ClearDepthStencilView(m_depthstencil_view, D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL, 1.0f, 255);
 
@@ -688,10 +686,7 @@ void D3DApp::RenderScene()
 		offset += float2(static_cast<float>(rand()), static_cast<float>(rand())) / RAND_MAX;;
 		jitter = (jitter - offset) / float2(static_cast<float>(m_width * g_aa_sample), static_cast<float>(m_height * g_aa_sample));
 
-		D3D11_MAPPED_SUBRESOURCE res;
-		m_d3d11_device_context->Map(m_jitter_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &res);
-		*(static_cast<float4*>(res.pData)) = float4(jitter.x, jitter.y, 0, 0);
-		m_d3d11_device_context->Unmap(m_jitter_buffer, 0);
+		UpdateConstantBuffer(m_jitter_buffer, float4(jitter.x, jitter.y, 0, 0));
 		m_d3d11_device_context->VSSetConstantBuffers(0, 1, &m_jitter_buffer);
 
 		m_aa_frame_idx = (m_aa_frame_idx + 1) % (g_aa_sample * g_aa_sample);
@@ -701,6 +696,8 @@ void D3DApp::RenderScene()
 		m_aa_frame_idx = 0;
 	}
 
+	UpdateConstantBuffer(m_parameter_buffer, g_shader_param);
+	m_custom_pp->SetParameters(0, m_parameter_buffer);
 	if (m_custom_texture != NULL)
 	{
 		m_custom_pp->InputPin(0, m_custom_texture);
@@ -710,10 +707,7 @@ void D3DApp::RenderScene()
 
 	if (enable_aa)
 	{
-		D3D11_MAPPED_SUBRESOURCE res;
-		m_d3d11_device_context->Map(m_jitter_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &res);
-		*(static_cast<float4*>(res.pData)) = float4(0, 0, 0, 0);
-		m_d3d11_device_context->Unmap(m_jitter_buffer, 0);
+		UpdateConstantBuffer(m_jitter_buffer, float4(0, 0, 0, 0));
 		m_d3d11_device_context->VSSetConstantBuffers(0, 1, &m_jitter_buffer);
 
 		m_resolve_pp->InputPin(0, m_offscreen_srvs[1]);

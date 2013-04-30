@@ -46,6 +46,17 @@ private:
 	void UpdateScene(float delta_time);
 	void RenderScene();
 
+	void SetViewport(int width, int height);
+
+	template <typename T>
+	void UpdateConstantBuffer(ID3D11Buffer *buffer, const T& content)
+	{
+		D3D11_MAPPED_SUBRESOURCE res;
+		m_d3d11_device_context->Map(buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &res);
+		*static_cast<T*>(res.pData) = content;
+		m_d3d11_device_context->Unmap(buffer, 0);
+	}
+
 	bool InitializeDWrite(IDXGIAdapter1* adapter);
 	void RenderOverlay();
 
@@ -77,9 +88,9 @@ private:
 	IDXGIKeyedMutex* m_keyed_mutex11;
 	IDXGIKeyedMutex* m_keyed_mutex10;
 
-	PostProcessPtr m_copy_pp;
 	PostProcessPtr m_custom_pp;
 	PostProcessPtr m_resolve_pp;
+	PostProcessPtr m_copy_pp;
 	ID3D11Buffer* m_parameter_buffer;
 	ID3D11ShaderResourceView* m_custom_texture;
 	ID3D11Buffer* m_jitter_buffer;
