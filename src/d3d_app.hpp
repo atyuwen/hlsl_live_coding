@@ -90,10 +90,13 @@ private:
 
 	PostProcessPtr m_custom_pp;
 	PostProcessPtr m_resolve_pp;
-	PostProcessPtr m_copy_pp;
+	PostProcessPtr m_combine_pp;
+	PostProcessPtr m_halfres_resolve_pp;
+	PostProcessPtr m_halfres_copy_pp;
 	ID3D11Buffer* m_parameter_buffer;
 	ID3D11ShaderResourceView* m_custom_texture;
 	ID3D11Buffer* m_jitter_buffer;
+	ID3D11Buffer* m_interleave_buffer;
 
 	TextEditorPtr m_text_editor;
 	bool m_hide_editor;
@@ -103,6 +106,7 @@ private:
 	float2 m_mouse_pos;
 	float m_mouse_wheel;
 
+	bool m_half_resolution;
 	bool m_aa_enabled;
 	int m_aa_frame_idx;
 	float m_aa_control_time;

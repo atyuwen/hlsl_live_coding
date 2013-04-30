@@ -38,7 +38,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="bin\fx\pp_common.hlsl" />
-    <None Include="bin\fx\pp_copy.hlsl" />
+    <None Include="bin\fx\pp_combine.hlsl" />
     <None Include="bin\fx\pp_resolve.hlsl" />
     <None Include="bin\fx\snoise.hlsl" />
   </ItemGroup>

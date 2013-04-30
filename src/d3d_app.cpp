@@ -85,9 +85,11 @@ D3DApp::D3DApp()
 	, m_keyed_mutex10(NULL)
 	, m_parameter_buffer(NULL)
 	, m_jitter_buffer(NULL)
+	, m_interleave_buffer(NULL)
 	, m_custom_texture(NULL)
 	, m_hide_editor(false)
 	, m_mouse_wheel(0)
+	, m_half_resolution(false)
 	, m_aa_enabled(false)
 	, m_aa_control_time(0)
 	, m_aa_frame_idx(false)
@@ -99,6 +101,7 @@ D3DApp::D3DApp()
 
 D3DApp::~D3DApp()
 {
+	SAFE_RELEASE(m_interleave_buffer);
 	SAFE_RELEASE(m_jitter_buffer);
 	SAFE_RELEASE(m_parameter_buffer);
 	SAFE_RELEASE(m_custom_texture);
@@ -271,6 +274,12 @@ LRESULT CALLBACK D3DApp::WindowProc(HWND hwnd, UINT message, WPARAM wparam, LPAR
 				app->m_aa_control_time = 0;
 				return 0;
 			}
+			else if (key_code == VK_F4)
+			{
+				app->m_half_resolution = !app->m_half_resolution;
+				app->m_aa_control_time = 0;
+				return 0;
+			}
 			else if (key_code == VK_OEM_PLUS && held_control)
 			{
 				if (app->m_sound_player) app->m_sound_player->ChangeVolume(0.1f);
@@ -367,11 +376,12 @@ void D3DApp::TimerEventsProc(int cnt, const tstring& tag)
 
 		char title[512] = {0};
 		sprintf_s(title,
-			TEXT("%s     [ ShowEditor(F1):%s | BgMusic(F2):%s | Anti-Aliasing(F3):%s ]     [ FPS:%d | CPU:%.1fms | GPU:%.1fms ]"),
+			TEXT("%s     [ ShowEditor(F1):%s | BgMusic(F2):%s | Anti-Aliasing(F3):%s | Half-Res(F4):%s ]     [ FPS:%d | CPU:%.1fms | GPU:%.1fms ]"),
 			g_app_title.c_str(),
 			!m_hide_editor ? TEXT("on") : TEXT("off"),
 			!m_sound_player->GetMute() ? TEXT("on") : TEXT("off"),
 			m_aa_enabled ? TEXT("on") : TEXT("off"),
+			m_half_resolution ? TEXT("on") : TEXT("off"),
 			static_cast<int>(fps + 0.5f),
 			cpu_time,
 			gpu_time);
@@ -530,6 +540,7 @@ bool D3DApp::InitializeD3D()
 
 	buffer_desc.ByteWidth = sizeof(float4);
 	hr = m_d3d11_device->CreateBuffer(&buffer_desc, NULL, &m_jitter_buffer);
+	hr = m_d3d11_device->CreateBuffer(&buffer_desc, NULL, &m_interleave_buffer);
 
 	// create a texture from file
 	D3DX11CreateShaderResourceViewFromFile(m_d3d11_device, TEXT("media/tex.bmp"), NULL, NULL, &m_custom_texture, &hr);
@@ -541,8 +552,8 @@ void D3DApp::SetViewport(int width, int height)
 {
 	// set view port
 	D3D11_VIEWPORT view_port;
-	view_port.Width = static_cast<float>(m_width);
-	view_port.Height = static_cast<float>(m_height);
+	view_port.Width = static_cast<float>(width);
+	view_port.Height = static_cast<float>(height);
 	view_port.MinDepth = 0.0f;
 	view_port.MaxDepth = 1.0f;
 	view_port.TopLeftX = 0;
@@ -613,14 +624,26 @@ bool D3DApp::InitializeShaders()
 {
 	m_custom_pp = PostProcessPtr(new PostProcess);
 
-	m_copy_pp = PostProcessPtr(new PostProcess);
-	if (!m_copy_pp->LoadPixelShaderFromFile(TEXT("pp_copy.hlsl"), TEXT("ps_main")))
+	m_combine_pp = PostProcessPtr(new PostProcess);
+	if (!m_combine_pp->LoadPixelShaderFromFile(TEXT("pp_combine.hlsl"), TEXT("ps_main")))
 	{
 		return false;
 	}
 
 	m_resolve_pp = PostProcessPtr(new PostProcess(true));
-	if (!m_resolve_pp->LoadPixelShaderFromFile(TEXT("pp_resolve.hlsl"), TEXT("ps_main")))
+	if (!m_resolve_pp->LoadPixelShaderFromFile(TEXT("pp_resolve.hlsl"), TEXT("resolve")))
+	{
+		return false;
+	}
+
+	m_halfres_resolve_pp = PostProcessPtr(new PostProcess(true));
+	if (!m_halfres_resolve_pp->LoadPixelShaderFromFile(TEXT("pp_resolve.hlsl"), TEXT("halfres_resolve")))
+	{
+		return false;
+	}
+
+	m_halfres_copy_pp = PostProcessPtr(new PostProcess(true));
+	if (!m_halfres_copy_pp->LoadPixelShaderFromFile(TEXT("pp_resolve.hlsl"), TEXT("halfres_copy")))
 	{
 		return false;
 	}
@@ -685,6 +708,13 @@ void D3DApp::RenderScene()
 		float2 offset = float2(g_aa_sample / 2.0f, g_aa_sample / 2.0f);
 		offset += float2(static_cast<float>(rand()), static_cast<float>(rand())) / RAND_MAX;;
 		jitter = (jitter - offset) / float2(static_cast<float>(m_width * g_aa_sample), static_cast<float>(m_height * g_aa_sample));
+		if (m_half_resolution)
+		{
+			jitter = jitter * 2.0f;
+			float interleave_x = static_cast<float>(sample % g_aa_sample >= (g_aa_sample / 2));
+			float interleave_y = static_cast<float>(sample / g_aa_sample >= (g_aa_sample / 2));
+			UpdateConstantBuffer(m_interleave_buffer, float4(interleave_x, interleave_y, 0, 0));
+		}
 
 		UpdateConstantBuffer(m_jitter_buffer, float4(jitter.x, jitter.y, 0, 0));
 		m_d3d11_device_context->VSSetConstantBuffers(0, 1, &m_jitter_buffer);
@@ -696,30 +726,50 @@ void D3DApp::RenderScene()
 		m_aa_frame_idx = 0;
 	}
 
-	UpdateConstantBuffer(m_parameter_buffer, g_shader_param);
-	m_custom_pp->SetParameters(0, m_parameter_buffer);
-	if (m_custom_texture != NULL)
+	if (m_half_resolution) SetViewport(m_width / 2, m_height / 2);
 	{
-		m_custom_pp->InputPin(0, m_custom_texture);
+		UpdateConstantBuffer(m_parameter_buffer, g_shader_param);
+		m_custom_pp->SetParameters(0, m_parameter_buffer);
+		if (m_custom_texture != NULL)
+		{
+			m_custom_pp->InputPin(0, m_custom_texture);
+		}
+		m_custom_pp->OutputPin(0, m_offscreen_rtvs[enable_aa | m_half_resolution]);
+		m_custom_pp->Apply();
 	}
-	m_custom_pp->OutputPin(0, m_offscreen_rtvs[enable_aa]);
-	m_custom_pp->Apply();
+	if (m_half_resolution) SetViewport(m_width, m_height);
 
 	if (enable_aa)
 	{
 		UpdateConstantBuffer(m_jitter_buffer, float4(0, 0, 0, 0));
 		m_d3d11_device_context->VSSetConstantBuffers(0, 1, &m_jitter_buffer);
 
-		m_resolve_pp->InputPin(0, m_offscreen_srvs[1]);
-		m_resolve_pp->OutputPin(0, m_offscreen_rtvs[0]);
-		m_resolve_pp->Apply();
+		if (m_half_resolution)
+		{
+			m_halfres_resolve_pp->SetParameters(0, m_interleave_buffer);
+			m_halfres_resolve_pp->InputPin(0, m_offscreen_srvs[1]);
+			m_halfres_resolve_pp->OutputPin(0, m_offscreen_rtvs[0]);
+			m_halfres_resolve_pp->Apply();
+		}
+		else
+		{
+			m_resolve_pp->InputPin(0, m_offscreen_srvs[1]);
+			m_resolve_pp->OutputPin(0, m_offscreen_rtvs[0]);
+			m_resolve_pp->Apply();
+		}
+	}
+	else if (m_half_resolution)
+	{
+		m_halfres_copy_pp->InputPin(0, m_offscreen_srvs[1]);
+		m_halfres_copy_pp->OutputPin(0, m_offscreen_rtvs[0]);
+		m_halfres_copy_pp->Apply();
 	}
 
 	RenderOverlay();
-	m_copy_pp->InputPin(0, m_offscreen_srvs[0]);
-	m_copy_pp->InputPin(1, m_d2d_texture);
-	m_copy_pp->OutputPin(0, m_back_buffer_rtv);
-	m_copy_pp->Apply();
+	m_combine_pp->InputPin(0, m_offscreen_srvs[0]);
+	m_combine_pp->InputPin(1, m_d2d_texture);
+	m_combine_pp->OutputPin(0, m_back_buffer_rtv);
+	m_combine_pp->Apply();
 
 	m_timer.EndGPUTimming();
 	m_swap_chain->Present(0, 0);
