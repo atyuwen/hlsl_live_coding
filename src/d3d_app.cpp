@@ -197,7 +197,7 @@ int D3DApp::Run()
 		}
 		else
 		{
-			m_timer.SyncTick(1.0f / 60.0f);
+			m_timer.SyncTick(1.0f / 60);
 			UpdateScene(m_timer.GetDeltaTime());
 			RenderScene();
 		}
@@ -376,13 +376,13 @@ void D3DApp::TimerEventsProc(int cnt, const tstring& tag)
 
 		char title[512] = {0};
 		sprintf_s(title,
-			TEXT("%s     [ ShowEditor(F1):%s | BgMusic(F2):%s | Anti-Aliasing(F3):%s | Half-Res(F4):%s ]     [ FPS:%d | CPU:%.1fms | GPU:%.1fms ]"),
+			TEXT("%s     [ ShowEditor(F1):%s | BgMusic(F2):%s | Anti-Aliasing(F3):%s | Half-Res(F4):%s ]     [ FPS:%.1f | CPU:%.1fms | GPU:%.1fms ]"),
 			g_app_title.c_str(),
 			!m_hide_editor ? TEXT("on") : TEXT("off"),
 			!m_sound_player->GetMute() ? TEXT("on") : TEXT("off"),
 			m_aa_enabled ? TEXT("on") : TEXT("off"),
 			m_half_resolution ? TEXT("on") : TEXT("off"),
-			static_cast<int>(fps + 0.5f),
+			fps,
 			cpu_time,
 			gpu_time);
 

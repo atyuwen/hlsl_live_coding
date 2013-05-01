@@ -2,55 +2,11 @@
 // Migrated from Ian McEwan's glsl code, see: https://github.com/ashima/webgl-noise
 // Copyright (C) 2011 Ashima Arts. All rights reserved.
 
-float __mod289(float x)
-{
-  return x - floor(x * (1.0 / 289.0)) * 289.0;
-}
+#define __mod289(x) ((x) - floor((x) * (1.0 / 289.0)) * 289.0)
 
-float2 __mod289(float2 x)
-{
-  return x - floor(x * (1.0 / 289.0)) * 289.0;
-}
+#define __permute(x) (__mod289((((x) * 34.0) + 1.0) * (x)))
 
-float3 __mod289(float3 x)
-{
-  return x - floor(x * (1.0 / 289.0)) * 289.0;
-}
-
-float4 __mod289(float4 x)
-{
-  return x - floor(x * (1.0 / 289.0)) * 289.0;
-}
-
-float __permute(float x)
-{
-  return __mod289(((x * 34.0) + 1.0) * x);
-}
-
-float3 __permute(float3 x)
-{
-  return __mod289(((x * 34.0) + 1.0) * x);
-}
-
-float4 __permute(float4 x)
-{
-  return __mod289(((x * 34.0) + 1.0) * x);
-}
-
-float __taylor_inv_sqrt(float r)
-{
-  return 1.79284291400159 - 0.85373472095314 * r;
-}
-
-float3 __taylor_inv_sqrt(float3 r)
-{
-  return 1.79284291400159 - 0.85373472095314 * r;
-}
-
-float4 __taylor_inv_sqrt(float4 r)
-{
-  return 1.79284291400159 - 0.85373472095314 * r;
-}
+#define __taylor_inv_sqrt(x) (1.79284291400159 - 0.85373472095314 * (x))
 
 float snoise(float2 v)
 {

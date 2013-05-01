@@ -11,12 +11,12 @@
 // default shader content
 //////////////////////////////////////////////////////////////////////////
 const wchar_t default_shader_content[] =
-	L"cbuffer Parameters\n"
+	L"cbuffer Parameters : register(b0)\n"
 	L"{\n"
-	L"  float4 time;\n"
-	L"  float4 view;\n"
-	L"  float4 freq;\n"
-	L"  float4 mpos;\n"
+	L"  float4 time;  // (app time, 0, 0, 0)\n"
+	L"  float4 view;  // (view width, view height, 1 / width, 1 / height)\n"
+	L"  float4 freq;  // (bass, low, mid, high) freq part of the background music\n"
+	L"  float4 mpos;  // (mouse.x, mouse.y, mouse.wheel, 0)\n"
 	L"}\n"
 	L"\n"
 	L"float4 ps_main(in float2 tc : TEXCOORD) : SV_TARGET\n"

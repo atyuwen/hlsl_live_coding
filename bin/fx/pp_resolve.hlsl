@@ -23,5 +23,5 @@ float4 halfres_resolve(in float4 sc : SV_POSITION) : SV_TARGET
 float4 halfres_copy(in float4 sc : SV_POSITION) : SV_TARGET
 {
 	int3 p = int3(sc.xy / 2, 0);
-	return src_texture0.Load(p);
+	return saturate(src_texture0.Load(p));
 }

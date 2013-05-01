@@ -49,7 +49,7 @@ float4 ps_main(in float2 tc : TEXCOORD) : SV_TARGET
   float3 gy = normalize(float3( 1,  1, 1)); 
   float3 gz = normalize(float3(-1, -1, 2));
 
-  float3 param = mpos.xyz * float3(-0.005, 0.005, -0.1) + float3(0.2, 0, 7);
+  float3 param = mpos.xyz * float3(-0.005, 0.005, -0.1) + float3(0.2, 0, 8);
   float4 rot;
   sincos(param.x, rot.x, rot.y);
   sincos(param.y, rot.z, rot.w);
