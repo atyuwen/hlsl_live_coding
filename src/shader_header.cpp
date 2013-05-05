@@ -10,6 +10,7 @@ namespace ShaderHeader
 	static const tstring headers[] =
 	{
 		TEXT("snoise.hlsl"),
+		TEXT("qnoise.hlsl"),
 	};
 
 	static tstring g_shader_header;

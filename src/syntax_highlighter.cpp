@@ -294,6 +294,7 @@ void SyntaxHighlighter::ParseToken(size_t &pos, TokenContext& context, const std
 		int start_pos = pos;
 		bool meet_digit = false;
 		bool meet_dot = false;
+		bool meet_exp = false;
 		bool meet_suffix = false;
 		bool illegal = false;
 		for (; pos < text.length() && (isalnum(text[pos]) || text[pos] == '.'); ++pos)
@@ -307,14 +308,23 @@ void SyntaxHighlighter::ParseToken(size_t &pos, TokenContext& context, const std
 			}
 			else if (text[pos] == '.')
 			{
-				if (!meet_dot) meet_dot = true; else illegal = true;
+				if (!meet_dot && !meet_exp) meet_dot = true;
+				else illegal = true;
 			}
 			else if (isalpha(text[pos]))
 			{
-				if (!meet_digit || meet_suffix) illegal = true;
-				else meet_suffix = true;
+				if (!meet_digit) illegal = true;
+				else if (tolower(text[pos]) == 'f') meet_suffix = true;
+				else if (!meet_exp && tolower(text[pos]) == 'e')
+				{
+					if (pos + 1 < text.length() && text[pos + 1] == '-') ++pos;
+					if (pos + 1 < text.length() && isdigit(text[pos + 1])) meet_exp = true;
+					else illegal = true;
+				}
+				else illegal = true;
 			}
 		}
+
 		Token tok(text, start_pos, pos);
 		tok.type = illegal ? TT_Illegal : TT_Constant;
 		ResolveToken(context, tok);

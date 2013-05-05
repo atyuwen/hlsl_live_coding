@@ -231,6 +231,7 @@ static const std::wstring global_funcs[] =
 static const std::wstring extend_funcs[] =
 {
 	L"snoise",
+	L"qnoise",
 };
 
 static const std::wstring member_funcs[] =

@@ -18,14 +18,14 @@ float DE(float3 p)
 {
   float4 c = 0;
   float4 d = 0;
-  [loop] for (int i = 0; i < 16; ++i)
+  float r = 0;
+  for (int i = 0; i < 16 && r < 3; ++i)
   {
     d = 2 * mul4d(c, d) + 1;
     p.z = -p.z;  // to break the boring symmetry
-    c = mul4d(c, c) + float4(p, 0);    
-    if (length(c) > 3.0) break;
+    c = mul4d(c, c) + float4(p, 0);
+    r = length(c);
   }
-  float r = length(c);
   float dr = length(d);
   return 0.5 * log(r) * r / dr;
 }
