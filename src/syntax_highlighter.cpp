@@ -102,7 +102,7 @@ void SyntaxHighlighter::Hightlight(const std::wstring& text, size_t start_pos, s
 		Token& tok = m_tokens[i];
 		if (tok.end_pos < start_pos) break;
 
-		if (tok.depth < caret_depth)
+		if (tok.type == TT_Separator && tok.depth < caret_depth)
 		{
 			size_t range_start = tok.start_pos > start_pos ? tok.start_pos - start_pos : 0;
 			size_t range_end = tok.end_pos < end_pos ? tok.end_pos - start_pos : end_pos - start_pos;
@@ -118,7 +118,7 @@ void SyntaxHighlighter::Hightlight(const std::wstring& text, size_t start_pos, s
 		Token& tok = m_tokens[i];
 		if (tok.start_pos >= end_pos) break;
 	
-		if (tok.depth < caret_depth)
+		if (tok.type == TT_Separator && tok.depth < caret_depth)
 		{
 			size_t range_start = tok.start_pos > start_pos ? tok.start_pos - start_pos : 0;
 			size_t range_end = tok.end_pos < end_pos ? tok.end_pos - start_pos : end_pos - start_pos;
